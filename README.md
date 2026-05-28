@@ -1,42 +1,124 @@
-# IRMAE CRM - GitHub Pages + Firebase
+# IRMAE CRM
 
-This folder is the static web app version for GitHub Pages.
+Static CRM web app hosted on GitHub Pages with Firebase Authentication and Firebase Realtime Database.
 
-## What Gets Uploaded To GitHub
+Live app:
 
-Upload only this folder's static app files:
+`https://obxiv.github.io/IRMAE_CRM/`
+
+GitHub repo:
+
+`https://github.com/OBXIV/IRMAE_CRM`
+
+## Architecture
+
+- `index.html` is the full GitHub Pages app.
+- Firebase Google sign-in controls access.
+- Firebase Realtime Database stores client records under `/clients/{clientId}`.
+- GitHub does not store the client database.
+
+## Access
+
+Only these Google accounts are allowed by the database rules:
+
+- `mechev14@gmail.com`
+- `iecheve@gmail.com`
+
+If another user needs access, add their Google email to `firebase-rules.json`, publish the updated rules in Firebase, then commit/push the rules file for documentation.
+
+## Firebase Settings
+
+Firebase project: `iramecrm`
+
+Realtime Database URL:
+
+`https://iramecrm-default-rtdb.firebaseio.com`
+
+Authentication provider:
+
+- Google only
+
+Authorized domains must include:
+
+- `localhost`
+- `127.0.0.1`
+- `obxiv.github.io`
+- Firebase defaults such as `iramecrm.firebaseapp.com` and `iramecrm.web.app`
+
+## Firebase Rules
+
+The rules in `firebase-rules.json` are the source of truth for who can read/write client data.
+
+To update rules:
+
+1. Open Firebase Console.
+2. Go to Realtime Database.
+3. Open the Rules tab.
+4. Paste the contents of `firebase-rules.json`.
+5. Click Publish.
+
+## Safe GitHub Files
+
+Commit these files:
 
 - `index.html`
+- `README.md`
+- `firebase-rules.json`
 - `.nojekyll`
-- `firebase-rules.json` as a reference file
+- `.gitignore`
 
-Do not upload:
+Do not commit client data files:
 
 - `irmae_crm.db`
 - `dbbackup_import.json`
+- `irmae_firebase_import_*.json`
 - Excel files
-- Any backup JSON with client data
+- Any exported backup JSON
 
-## Firebase Setup
+## Client Imports
 
-1. Create a Firebase project.
-2. Add a Web app.
-3. Enable Authentication.
-4. Enable Google sign-in.
-5. Create a Realtime Database.
-6. In Realtime Database Rules, copy `firebase-rules.json`.
-7. Replace `wife@example.com` and `you@example.com` with the allowed login email addresses.
-8. Copy the Firebase web app config into the `FIREBASE_CONFIG` block in `index.html`.
+Use the app button labeled `Import Clients`.
 
-## First Data Import
+Typical workflow:
 
-After signing into the hosted CRM:
+1. Convert a spreadsheet/export into CRM JSON locally.
+2. Open the live app.
+3. Sign in with an allowed Google account.
+4. Click `Import Clients`.
+5. Select the JSON file.
+6. Confirm the client records appear.
 
-1. Click `Import Backup`.
-2. Select the converted backup JSON file, for example `dbbackup_import.json`.
-3. Confirm the rows load.
-4. Do not commit that JSON file to GitHub.
+Imported data is written to Firebase, not GitHub.
 
-## Backup
+## Export Backup
 
-The `Backup` button downloads a dated JSON backup from Firebase data currently loaded in the browser.
+Use `Export Backup` to download a dated JSON snapshot of the client data currently loaded from Firebase.
+
+This is a safety copy, not the primary database. Firebase is the live database.
+
+## Local Testing
+
+From this folder:
+
+```bash
+python3 -m http.server 8060
+```
+
+Then open:
+
+`http://localhost:8060`
+
+Google sign-in works locally because `localhost` is an authorized Firebase domain.
+
+## Deploy Updates
+
+Make changes locally, then:
+
+```bash
+git status
+git add index.html README.md firebase-rules.json .nojekyll .gitignore
+git commit -m "Describe the change"
+git push
+```
+
+GitHub Pages will redeploy from the `main` branch.
