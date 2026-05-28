@@ -15,6 +15,8 @@ GitHub repo:
 - `index.html` is the full GitHub Pages app.
 - Firebase Google sign-in controls access.
 - Firebase Realtime Database stores client records under `/clients/{clientId}`.
+- `rates.json` stores the latest national mortgage-rate snapshot used by the dashboard.
+- `.github/workflows/update-rates.yml` refreshes `rates.json` daily from Freddie Mac PMMS data via FRED.
 - GitHub does not store the client database.
 
 ## Access
@@ -64,6 +66,9 @@ Commit these files:
 - `index.html`
 - `README.md`
 - `firebase-rules.json`
+- `rates.json`
+- `scripts/update_rates.py`
+- `.github/workflows/update-rates.yml`
 - `.nojekyll`
 - `.gitignore`
 
@@ -89,6 +94,23 @@ Typical workflow:
 6. Confirm the client records appear.
 
 Imported data is written to Firebase, not GitHub.
+
+## Market Rates / Refi Watch
+
+The dashboard shows:
+
+- National 30-year fixed mortgage rate
+- National 15-year fixed mortgage rate
+- Refi Watch count
+
+Rates come from Freddie Mac PMMS via FRED:
+
+- 30-year series: `MORTGAGE30US`
+- 15-year series: `MORTGAGE15US`
+
+The GitHub Action checks for updated rates every morning and commits a refreshed `rates.json` when values change. PMMS is a national weekly average, so the app checks daily but the underlying Freddie Mac values typically change weekly.
+
+Refi Watch flags loans where the client rate is at least `0.75%` above the current national 30-year average. It is a triage signal only, not a rate quote or refinance recommendation.
 
 ## Export Backup
 
@@ -116,7 +138,7 @@ Make changes locally, then:
 
 ```bash
 git status
-git add index.html README.md firebase-rules.json .nojekyll .gitignore
+git add index.html README.md firebase-rules.json rates.json scripts/update_rates.py .github/workflows/update-rates.yml .nojekyll .gitignore
 git commit -m "Describe the change"
 git push
 ```

@@ -184,6 +184,28 @@
     .stat-card .num { font-size: 1.8rem; font-weight: 700; color: #1e3a5f; }
     .stat-card .lbl { font-size: 0.78rem; color: #6b7280; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
 
+    .market-panel {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(180px, 1fr));
+      gap: 14px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 22px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .market-card {
+      border-left: 4px solid #0891b2;
+      padding: 4px 12px;
+      min-width: 0;
+    }
+    .market-card.watch { border-left-color: #ca8a04; }
+    .market-card .rate-value { font-size: 1.65rem; line-height: 1; font-weight: 800; color: #1e3a5f; }
+    .market-card .rate-label { margin-top: 5px; color: #4b5563; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
+    .market-card .rate-note { margin-top: 4px; color: #6b7280; font-size: 0.78rem; }
+    .refi-badge { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; margin-left: 5px; }
+
     /* Table */
     .table-wrap {
       background: white;
@@ -328,6 +350,7 @@
 
     @media (max-width: 640px) {
       .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+      .market-panel { grid-template-columns: 1fr; }
       .form-grid .full { grid-column: 1; }
       header { padding: 14px 16px; }
       .container { padding: 16px; }
@@ -395,6 +418,24 @@
     <div class="stat-card"><div class="num" id="stat-avg-rate">—</div><div class="lbl">Avg Interest Rate</div></div>
     <div class="stat-card"><div class="num" id="stat-purchases">0</div><div class="lbl">Purchases</div></div>
     <div class="stat-card"><div class="num" id="stat-refis">0</div><div class="lbl">Refinances</div></div>
+  </div>
+
+  <div class="market-panel" id="marketPanel">
+    <div class="market-card">
+      <div class="rate-value" id="rate30">—</div>
+      <div class="rate-label">National 30-Yr Fixed</div>
+      <div class="rate-note" id="rate30Note">Loading market rate...</div>
+    </div>
+    <div class="market-card">
+      <div class="rate-value" id="rate15">—</div>
+      <div class="rate-label">National 15-Yr Fixed</div>
+      <div class="rate-note" id="rate15Note">Loading market rate...</div>
+    </div>
+    <div class="market-card watch">
+      <div class="rate-value" id="refiWatchCount">0</div>
+      <div class="rate-label">Refi Watch</div>
+      <div class="rate-note" id="refiWatchNote">Loans at least 0.75% above current 30-yr rate.</div>
+    </div>
   </div>
 
   <div class="table-wrap">
@@ -659,6 +700,8 @@
   let auth = null;
   let currentUser = null;
   let listening = false;
+  let marketRates = null;
+  const REFI_SPREAD_THRESHOLD = 0.75;
 
   function showBanner(message, isError = false) {
     const banner = document.getElementById('syncBanner');
@@ -801,6 +844,46 @@
     return `${months[parseInt(m,10)-1]} ${parseInt(day,10)}, ${y}`;
   }
 
+  function fmtShortDate(d) {
+    if (!d) return '—';
+    const [y, m, day] = d.split('-');
+    return `${m}/${day}/${y}`;
+  }
+
+  function shouldFlagRefi(c) {
+    if (!marketRates?.thirtyYear?.rate || !c.rate) return false;
+    const clientRate = parseFloat(c.rate);
+    return !isNaN(clientRate) && clientRate >= marketRates.thirtyYear.rate + REFI_SPREAD_THRESHOLD;
+  }
+
+  async function loadMortgageRates() {
+    try {
+      const response = await fetch('rates.json?ts=' + Date.now(), { cache: 'no-store' });
+      if (!response.ok) throw new Error('rates.json not found');
+      marketRates = await response.json();
+      renderMortgageRates();
+      renderTable();
+    } catch (err) {
+      document.getElementById('rate30Note').textContent = 'Could not load market rates.';
+      document.getElementById('rate15Note').textContent = 'Could not load market rates.';
+      console.error(err);
+    }
+  }
+
+  function renderMortgageRates() {
+    const thirty = marketRates?.thirtyYear;
+    const fifteen = marketRates?.fifteenYear;
+    document.getElementById('rate30').textContent = thirty?.rate ? thirty.rate.toFixed(2) + '%' : '—';
+    document.getElementById('rate15').textContent = fifteen?.rate ? fifteen.rate.toFixed(2) + '%' : '—';
+    document.getElementById('rate30Note').textContent = thirty?.date
+      ? `Freddie Mac PMMS as of ${fmtShortDate(thirty.date)}`
+      : 'National average unavailable';
+    document.getElementById('rate15Note').textContent = fifteen?.date
+      ? `Freddie Mac PMMS as of ${fmtShortDate(fifteen.date)}`
+      : 'National average unavailable';
+    updateStats();
+  }
+
   function esc(s) {
     if (!s) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -873,6 +956,7 @@
         const b3 = [c.borrower3first, c.borrower3last].filter(Boolean).join(' ');
         const b4 = [c.borrower4first, c.borrower4last].filter(Boolean).join(' ');
         const coTag = `<span class="badge badge-cosigner" style="font-size:0.68rem;padding:1px 6px;margin-left:5px">Co-Signer</span>`;
+        const refiTag = shouldFlagRefi(c) ? `<span class="badge refi-badge" title="Client rate is at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above the current 30-year national average">Refi Watch</span>` : '';
         tr.innerHTML = `
           <td>${propBadge(c.proptype)}</td>
           <td>${prBadge(c.pr)}</td>
@@ -889,7 +973,7 @@
           <td>${fmt$(c.salesprice)}</td>
           <td>${fmt$(c.loanamt)}</td>
           <td>${fmtDate(c.closing)}</td>
-          <td>${fmtRate(c.rate)}</td>
+          <td>${fmtRate(c.rate)}${refiTag}</td>
           <td>${programBadge(c.program)}</td>
           <td>${esc(c.referral) || '—'}</td>
           <td>
@@ -918,6 +1002,12 @@
 
     document.getElementById('stat-purchases').textContent = clients.filter(c => c.pr === 'P').length;
     document.getElementById('stat-refis').textContent     = clients.filter(c => c.pr === 'R').length;
+
+    const refiWatch = clients.filter(shouldFlagRefi).length;
+    document.getElementById('refiWatchCount').textContent = refiWatch;
+    document.getElementById('refiWatchNote').textContent = marketRates?.thirtyYear?.rate
+      ? `Loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above ${marketRates.thirtyYear.rate.toFixed(2)}%.`
+      : `Loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above current 30-yr rate.`;
   }
 
   // ── Modal ────────────────────────────────────────────────
@@ -1147,6 +1237,7 @@
   document.getElementById('header-date').textContent =
     new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
+  loadMortgageRates();
   initFirebase();
 </script>
 </body>
