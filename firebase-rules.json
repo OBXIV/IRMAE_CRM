@@ -1,0 +1,9 @@
+{
+  "rules": {
+    "clients": {
+      ".read": "auth != null && (auth.token.email == 'wife@example.com' || auth.token.email == 'you@example.com')",
+      ".write": "auth != null && (auth.token.email == 'wife@example.com' || auth.token.email == 'you@example.com')",
+      ".indexOn": ["closing", "borrower1last", "referral", "program"]
+    }
+  }
+}

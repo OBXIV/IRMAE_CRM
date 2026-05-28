@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IRMAE CRM</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1e3a5f;
+      color: white;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: 0.3px; }
+    header span { font-size: 0.85rem; opacity: 0.75; position: absolute; right: 32px; }
+
+    .container { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+
+    .setup-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      background: #f0f4f8;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .setup-overlay.open { display: flex; }
+    .setup-card {
+      width: min(560px, 100%);
+      background: white;
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.16);
+      border: 1px solid #e5e7eb;
+    }
+    .setup-card h2 { color: #1e3a5f; font-size: 1.25rem; margin-bottom: 8px; }
+    .setup-card p { color: #4b5563; font-size: 0.92rem; line-height: 1.55; margin-bottom: 14px; }
+    .setup-card textarea {
+      width: 100%;
+      min-height: 130px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8rem;
+      resize: vertical;
+      margin: 8px 0 12px;
+    }
+    .setup-error { display: none; color: #b91c1c; font-size: 0.85rem; margin-bottom: 12px; }
+    .setup-error.show { display: block; }
+
+    .login-card .login-fields {
+      display: grid;
+      gap: 10px;
+      margin: 14px 0;
+    }
+    .login-card input {
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+    .login-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .sync-banner {
+      display: none;
+      background: #eff6ff;
+      border-bottom: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      padding: 8px 24px;
+      font-size: 0.85rem;
+    }
+    .sync-banner.show { display: block; }
+    .sync-banner.error { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+
+    /* Backup reminder banner */
+    .backup-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #fefce8;
+      border: 1px solid #fde047;
+      border-radius: 10px;
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      color: #713f12;
+    }
+    .backup-banner .banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .btn-banner-backup { background: #ca8a04; color: white; font-size: 0.82rem; padding: 6px 12px; }
+    .btn-banner-backup:hover { background: #a16207; }
+    .btn-banner-dismiss { background: transparent; color: #92400e; font-size: 0.82rem; padding: 6px 10px; border: 1px solid #fcd34d; }
+    .btn-banner-dismiss:hover { background: #fef9c3; }
+    .btn-add-borrower { background: none; border: 1px dashed #93c5fd; color: #2563eb; border-radius: 7px; padding: 5px 12px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+    .btn-add-borrower:hover { background: #eff6ff; }
+    .cosigner-check { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; font-weight: 600; color: #6b7280; padding: 2px 0; grid-column: 1 / -1; }
+    .cosigner-check input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: #1e3a5f; }
+    .badge-cosigner { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+
+    /* Top bar */
+    .topbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 220px;
+      padding: 10px 14px;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background: white;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary   { background: #1e3a5f; color: white; }
+    .btn-primary:hover { background: #16304f; }
+    .btn-success   { background: #16a34a; color: white; }
+    .btn-success:hover { background: #15803d; }
+    .btn-danger    { background: #dc2626; color: white; font-size: 0.82rem; padding: 6px 12px; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-edit      { background: #2563eb; color: white; font-size: 0.82rem; padding: 6px 12px; }
+    .btn-edit:hover { background: #1d4ed8; }
+    .btn-cancel    { background: #e5e7eb; color: #374151; }
+    .btn-cancel:hover { background: #d1d5db; }
+    .btn-export    { background: #0891b2; color: white; }
+    .btn-export:hover { background: #0e7490; }
+    .btn-import    { background: #7c3aed; color: white; }
+    .btn-import:hover { background: #6d28d9; }
+    .btn-logout    { background: #475569; color: white; padding: 7px 12px; font-size: 0.82rem; }
+    .btn-logout:hover { background: #334155; }
+
+    /* Stats */
+    .stats {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 10px;
+      padding: 14px 22px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+    }
+    .stat-card .num { font-size: 1.8rem; font-weight: 700; color: #1e3a5f; }
+    .stat-card .lbl { font-size: 0.78rem; color: #6b7280; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Table */
+    .table-wrap {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+      overflow-x: auto;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 1100px; }
+    thead { background: #1e3a5f; color: white; }
+    thead th {
+      padding: 12px 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.12s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; }
+    td { padding: 10px 12px; vertical-align: middle; }
+    td .primary { font-weight: 600; color: #1e3a5f; }
+    td .sub { font-size: 0.76rem; color: #6b7280; margin-top: 2px; }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.73rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    /* Property type */
+    .badge-O    { background: #dbeafe; color: #1e40af; }
+    .badge-2nd  { background: #fef3c7; color: #92400e; }
+    .badge-IP   { background: #f3e8ff; color: #6b21a8; }
+    /* P/R */
+    .badge-P    { background: #d1fae5; color: #065f46; }
+    .badge-R    { background: #fee2e2; color: #991b1b; }
+    /* Program */
+    .badge-fha  { background: #dbeafe; color: #1e40af; }
+    .badge-va   { background: #d1fae5; color: #065f46; }
+    .badge-conv { background: #ede9fe; color: #5b21b6; }
+    .badge-usda { background: #fef3c7; color: #92400e; }
+    .badge-jumbo{ background: #fee2e2; color: #991b1b; }
+    .badge-other{ background: #f3f4f6; color: #374151; }
+
+    .actions { display: flex; gap: 6px; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #9ca3af;
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 14px;
+      padding: 28px 30px;
+      width: 100%;
+      max-width: 700px;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .modal h2 { font-size: 1.2rem; color: #1e3a5f; margin-bottom: 6px; font-weight: 700; }
+    .modal .section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #9ca3af;
+      margin: 18px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .form-grid .third { grid-column: span 1; }
+
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 0.78rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.4px; }
+    .field input, .field select {
+      padding: 8px 11px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s;
+      background: white;
+    }
+    .field input:focus, .field select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+
+    .form-grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; }
+
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+
+    /* Confirm */
+    .confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .confirm-overlay.open { display: flex; }
+    .confirm-box {
+      background: white;
+      border-radius: 12px;
+      padding: 28px 32px;
+      max-width: 360px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    .confirm-box h3 { font-size: 1.1rem; margin-bottom: 8px; color: #111827; }
+    .confirm-box p { color: #6b7280; font-size: 0.9rem; margin-bottom: 22px; }
+    .confirm-btns { display: flex; gap: 10px; justify-content: center; }
+
+    @media (max-width: 640px) {
+      .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
+      .form-grid .full { grid-column: 1; }
+      header { padding: 14px 16px; }
+      .container { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="setup-overlay" id="configOverlay">
+  <div class="setup-card">
+    <h2>Connect Firebase</h2>
+    <p>Paste the Firebase web app config for this CRM. This is only a fallback setup screen; for GitHub Pages, the clean version is to paste the config into the <code>FIREBASE_CONFIG</code> block in this file before publishing.</p>
+    <div class="setup-error" id="configError"></div>
+    <textarea id="configInput" spellcheck="false" placeholder='{
+  apiKey: "...",
+  authDomain: "...",
+  databaseURL: "...",
+  projectId: "..."
+}'></textarea>
+    <button class="btn btn-primary" onclick="saveFirebaseConfig()">Connect Firebase</button>
+  </div>
+</div>
+
+<div class="setup-overlay" id="loginOverlay">
+  <div class="setup-card login-card">
+    <h2>IRMAE CRM Login</h2>
+    <p>Sign in to access the client database.</p>
+    <div class="setup-error" id="loginError"></div>
+    <div class="login-fields">
+      <input type="email" id="loginEmail" placeholder="Email address" autocomplete="email" />
+      <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" />
+    </div>
+    <div class="login-actions">
+      <button class="btn btn-primary" onclick="loginWithEmail()">Sign In</button>
+      <button class="btn btn-import" onclick="loginWithGoogle()">Sign In with Google</button>
+    </div>
+  </div>
+</div>
+
+<div class="sync-banner" id="syncBanner"></div>
+
+<header>
+  <h1>IRMAE CRM</h1>
+  <span id="header-date"></span>
+</header>
+
+<div class="container">
+
+  <div class="backup-banner" id="backupBanner">
+    <span id="backupBannerMsg"></span>
+    <div class="banner-actions">
+      <button class="btn btn-banner-backup" onclick="exportData()">Backup Now</button>
+      <button class="btn btn-banner-dismiss" onclick="dismissBackupReminder()">Dismiss</button>
+    </div>
+  </div>
+
+  <div class="topbar">
+    <input class="search-input" type="text" id="searchInput" placeholder="Search by borrower, address, city, referral partner, program…" oninput="renderTable()" />
+    <button class="btn btn-primary" onclick="openModal()">+ Add Client</button>
+    <button class="btn btn-export" onclick="exportData()">Backup</button>
+    <button class="btn btn-import" onclick="document.getElementById('importFile').click()">Import Backup</button>
+    <button class="btn btn-logout" onclick="logout()">Sign Out</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+  </div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="num" id="stat-total">0</div><div class="lbl">Total Clients</div></div>
+    <div class="stat-card"><div class="num" id="stat-volume">$0</div><div class="lbl">Total Loan Volume</div></div>
+    <div class="stat-card"><div class="num" id="stat-avg-rate">—</div><div class="lbl">Avg Interest Rate</div></div>
+    <div class="stat-card"><div class="num" id="stat-purchases">0</div><div class="lbl">Purchases</div></div>
+    <div class="stat-card"><div class="num" id="stat-refis">0</div><div class="lbl">Refinances</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>P/R</th>
+          <th>Borrower(s)</th>
+          <th>Address</th>
+          <th>Sales Price</th>
+          <th>Loan Amt</th>
+          <th>Closing</th>
+          <th>Rate</th>
+          <th>Program</th>
+          <th>Referral Partner</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="clientTableBody"></tbody>
+    </table>
+    <div class="empty-state" id="emptyState" style="display:none">
+      <div class="icon">📋</div>
+      <p>No clients yet. Click <strong>+ Add Client</strong> to get started.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Add New Client</h2>
+
+    <div class="section-label">Borrowers</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Borrower 1 First *</label>
+        <input type="text" id="f-borrower1first" placeholder="First" />
+      </div>
+      <div class="field">
+        <label>Borrower 1 Last *</label>
+        <input type="text" id="f-borrower1last" placeholder="Last" />
+      </div>
+      <div class="field">
+        <label>Borrower 2 First</label>
+        <input type="text" id="f-borrower2first" placeholder="First" />
+      </div>
+      <div class="field">
+        <label>Borrower 2 Last</label>
+        <input type="text" id="f-borrower2last" placeholder="Last" />
+      </div>
+      <label class="cosigner-check">
+        <input type="checkbox" id="f-cosigner2" /> Co-Signer
+      </label>
+    </div>
+    <div class="form-grid" id="borrower3-row" style="display:none; margin-top:14px">
+      <div class="field">
+        <label>Borrower 3 First</label>
+        <input type="text" id="f-borrower3first" placeholder="First" />
+      </div>
+      <div class="field">
+        <label>Borrower 3 Last</label>
+        <input type="text" id="f-borrower3last" placeholder="Last" />
+      </div>
+      <label class="cosigner-check">
+        <input type="checkbox" id="f-cosigner3" /> Co-Signer
+      </label>
+    </div>
+    <div class="form-grid" id="borrower4-row" style="display:none; margin-top:14px">
+      <div class="field">
+        <label>Borrower 4 First</label>
+        <input type="text" id="f-borrower4first" placeholder="First" />
+      </div>
+      <div class="field">
+        <label>Borrower 4 Last</label>
+        <input type="text" id="f-borrower4last" placeholder="Last" />
+      </div>
+      <label class="cosigner-check">
+        <input type="checkbox" id="f-cosigner4" /> Co-Signer
+      </label>
+    </div>
+    <div style="margin-top:8px">
+      <button type="button" class="btn-add-borrower" id="addBorrowerBtn" onclick="addBorrower()">+ Add Borrower</button>
+    </div>
+
+    <div class="section-label">Loan Info</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Property Type</label>
+        <select id="f-proptype">
+          <option value="">— Select —</option>
+          <option value="O">O — Owner Occupied</option>
+          <option value="2nd">2nd — 2nd Mortgage</option>
+          <option value="IP">IP — Investment Property</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Purchase / Refinance</label>
+        <select id="f-pr">
+          <option value="">— Select —</option>
+          <option value="P">P — Purchase</option>
+          <option value="R">R — Refinance</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Program</label>
+        <select id="f-program">
+          <option value="">— Select —</option>
+          <option value="Conventional">Conventional</option>
+          <option value="FHA">FHA</option>
+          <option value="VA">VA</option>
+          <option value="USDA">USDA</option>
+          <option value="Jumbo">Jumbo</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Interest Rate (%)</label>
+        <input type="number" id="f-rate" placeholder="6.750" step="0.001" min="0" max="30" />
+      </div>
+      <div class="field">
+        <label>Sales Price</label>
+        <input type="number" id="f-salesprice" placeholder="450000" min="0" />
+      </div>
+      <div class="field">
+        <label>Loan Amount</label>
+        <input type="number" id="f-loanamt" placeholder="360000" min="0" />
+      </div>
+      <div class="field">
+        <label>Closing Date</label>
+        <input type="date" id="f-closing" />
+      </div>
+      <div class="field">
+        <label>Referral Partner</label>
+        <input type="text" id="f-referral" list="referral-list" placeholder="Select or type partner name" autocomplete="off" />
+        <datalist id="referral-list">
+          <option value="SELF">
+          <option value="Annie Veruno">
+          <option value="Brandon Harrison">
+          <option value="Brandy">
+          <option value="Brett McCollough">
+          <option value="Brett McCullough">
+          <option value="Clark">
+          <option value="Eric Nordberg">
+          <option value="Heather Ferguson">
+          <option value="Jacob Walsh">
+          <option value="Joe M">
+          <option value="John Schoettger">
+          <option value="Kat">
+          <option value="Kat Allaway">
+          <option value="Larissa">
+          <option value="Laura Stone">
+          <option value="Marie Rouse">
+          <option value="Michael Poach">
+          <option value="Morey">
+          <option value="PC">
+          <option value="PC - Jerod">
+          <option value="PCR">
+          <option value="PCR - Melissa Frietes">
+          <option value="Randy D - Not using">
+          <option value="Riley Wilcox">
+          <option value="Roland Corall">
+          <option value="Ryan">
+          <option value="Tanner">
+          <option value="Tanner Fisher">
+          <option value="Zillow">
+        </datalist>
+      </div>
+    </div>
+
+    <div class="section-label">Property Address</div>
+    <div class="form-grid">
+      <div class="field full">
+        <label>Street Address</label>
+        <input type="text" id="f-address" placeholder="123 Main St" />
+      </div>
+    </div>
+    <div class="form-grid-3" style="margin-top:14px">
+      <div class="field">
+        <label>City</label>
+        <input type="text" id="f-city" placeholder="Boise" />
+      </div>
+      <div class="field">
+        <label>State</label>
+        <input type="text" id="f-state" placeholder="ID" maxlength="2" />
+      </div>
+      <div class="field">
+        <label>Zip</label>
+        <input type="text" id="f-zip" placeholder="83704" maxlength="10" />
+      </div>
+    </div>
+
+    <div class="section-label">Contact Info</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Borrower 1 Cell</label>
+        <input type="tel" id="f-cell1" placeholder="(555) 123-4567" />
+      </div>
+      <div class="field">
+        <label>Borrower 1 Email</label>
+        <input type="email" id="f-email1" placeholder="borrower1@email.com" />
+      </div>
+      <div class="field">
+        <label>Borrower 1 Birthday</label>
+        <input type="date" id="f-birthday1" />
+      </div>
+      <div class="field" style="border-top: 0"></div>
+      <div class="field">
+        <label>Borrower 2 Cell</label>
+        <input type="tel" id="f-cell2" placeholder="(555) 123-4567" />
+      </div>
+      <div class="field">
+        <label>Borrower 2 Email</label>
+        <input type="email" id="f-email2" placeholder="borrower2@email.com" />
+      </div>
+      <div class="field">
+        <label>Borrower 2 Birthday</label>
+        <input type="date" id="f-birthday2" />
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-success" onclick="saveClient()">Save Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3>Delete Client?</h3>
+    <p>This will permanently remove the client record. This cannot be undone.</p>
+    <div class="confirm-btns">
+      <button class="btn btn-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Paste the Firebase web app config here before publishing to GitHub Pages.
+  // The API key is not a password; Firebase Auth + Database Rules protect the data.
+  const FIREBASE_CONFIG = {
+    apiKey: "",
+    authDomain: "",
+    databaseURL: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+  };
+
+  const FIREBASE_CONFIG_STORAGE_KEY = 'irmae_crm_firebase_config';
+  const CLIENTS_PATH = 'clients';
+
+  let clients = [];
+  let editingId = null;
+  let deletingId = null;
+  let db = null;
+  let auth = null;
+  let currentUser = null;
+  let listening = false;
+
+  function showBanner(message, isError = false) {
+    const banner = document.getElementById('syncBanner');
+    banner.textContent = message;
+    banner.className = 'sync-banner show' + (isError ? ' error' : '');
+  }
+
+  function hideBanner() {
+    document.getElementById('syncBanner').className = 'sync-banner';
+  }
+
+  function parseFirebaseConfig(text) {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    try { return new Function('return (' + match[0] + ')')(); } catch { return null; }
+  }
+
+  function getFirebaseConfig() {
+    if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.databaseURL) return FIREBASE_CONFIG;
+    try {
+      const saved = JSON.parse(localStorage.getItem(FIREBASE_CONFIG_STORAGE_KEY) || 'null');
+      if (saved && saved.apiKey && saved.databaseURL) return saved;
+    } catch {}
+    return null;
+  }
+
+  function showConfigError(message) {
+    const el = document.getElementById('configError');
+    el.textContent = message;
+    el.classList.add('show');
+  }
+
+  function showLoginError(message) {
+    const el = document.getElementById('loginError');
+    el.textContent = message;
+    el.classList.add('show');
+  }
+
+  function clearLoginError() {
+    document.getElementById('loginError').classList.remove('show');
+  }
+
+  function saveFirebaseConfig() {
+    const config = parseFirebaseConfig(document.getElementById('configInput').value.trim());
+    if (!config || !config.apiKey || !config.databaseURL) {
+      showConfigError('Could not read that config. Make sure it includes apiKey and databaseURL.');
+      return;
+    }
+    localStorage.setItem(FIREBASE_CONFIG_STORAGE_KEY, JSON.stringify(config));
+    document.getElementById('configOverlay').classList.remove('open');
+    initFirebase();
+  }
+
+  function initFirebase() {
+    const config = getFirebaseConfig();
+    if (!config) {
+      document.getElementById('configOverlay').classList.add('open');
+      return;
+    }
+
+    if (!firebase.apps.length) firebase.initializeApp(config);
+    db = firebase.database();
+    auth = firebase.auth();
+
+    auth.onAuthStateChanged(user => {
+      currentUser = user;
+      if (user) {
+        document.getElementById('loginOverlay').classList.remove('open');
+        startListening();
+      } else {
+        if (db && listening) {
+          db.ref(CLIENTS_PATH).off();
+          listening = false;
+        }
+        clients = [];
+        renderTable();
+        document.getElementById('loginOverlay').classList.add('open');
+      }
+    });
+  }
+
+  function loginWithEmail() {
+    clearLoginError();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) {
+      showLoginError('Enter an email and password.');
+      return;
+    }
+    auth.signInWithEmailAndPassword(email, password)
+      .catch(err => showLoginError(err.message || 'Login failed.'));
+  }
+
+  function loginWithGoogle() {
+    clearLoginError();
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider).catch(err => showLoginError(err.message || 'Login failed.'));
+  }
+
+  function logout() {
+    if (auth) auth.signOut();
+  }
+
+  function normalizeIncomingClient(c) {
+    return {
+      ...c,
+      cosigner2: !!c.cosigner2,
+      cosigner3: !!c.cosigner3,
+      cosigner4: !!c.cosigner4
+    };
+  }
+
+  function startListening() {
+    if (!db || listening) return;
+    listening = true;
+    showBanner('Syncing with Firebase...');
+    db.ref(CLIENTS_PATH).on('value', snapshot => {
+      const val = snapshot.val();
+      clients = val && typeof val === 'object'
+        ? Object.values(val).map(normalizeIncomingClient)
+        : [];
+      hideBanner();
+      renderTable();
+      checkBackupReminder();
+    }, err => {
+      showBanner('Firebase error: ' + err.message + '. Check Auth and Database Rules.', true);
+    });
+  }
+
+  function uid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2);
+  }
+
+  function fmt$(n) {
+    if (!n && n !== 0) return '—';
+    const v = parseFloat(n);
+    return isNaN(v) ? '—' : '$' + v.toLocaleString();
+  }
+
+  function fmtRate(r) {
+    if (!r && r !== 0) return '—';
+    const v = parseFloat(r);
+    return isNaN(v) ? '—' : v.toFixed(3) + '%';
+  }
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    const [y, m, day] = d.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(m,10)-1]} ${parseInt(day,10)}, ${y}`;
+  }
+
+  function esc(s) {
+    if (!s) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function propBadge(v) {
+    if (!v) return '—';
+    const map = { 'O':'badge-O O', '2nd':'badge-2nd 2nd', 'IP':'badge-IP IP' };
+    const cls = map[v] || 'badge-other';
+    return `<span class="badge ${cls}">${esc(v)}</span>`;
+  }
+
+  function prBadge(v) {
+    if (!v) return '—';
+    const map = { 'P':'badge-P P', 'R':'badge-R R' };
+    const cls = map[v] || 'badge-other';
+    return `<span class="badge ${cls}">${esc(v)}</span>`;
+  }
+
+  function programBadge(p) {
+    if (!p) return '—';
+    const map = { 'FHA':'badge-fha', 'VA':'badge-va', 'Conventional':'badge-conv', 'USDA':'badge-usda', 'Jumbo':'badge-jumbo', 'Other':'badge-other' };
+    return `<span class="badge ${map[p] || 'badge-other'}">${esc(p)}</span>`;
+  }
+
+  // ── Render ───────────────────────────────────────────────
+  function renderTable() {
+    const q = document.getElementById('searchInput').value.trim().toLowerCase();
+    const body = document.getElementById('clientTableBody');
+    const empty = document.getElementById('emptyState');
+
+    const sorted = [...clients].sort((a, b) => {
+      if (!a.closing && !b.closing) return 0;
+      if (!a.closing) return 1;
+      if (!b.closing) return -1;
+      return b.closing.localeCompare(a.closing);
+    });
+
+    const filtered = q ? sorted.filter(c =>
+      (c.borrower1first || '').toLowerCase().includes(q) ||
+      (c.borrower1last  || '').toLowerCase().includes(q) ||
+      (c.borrower2first || '').toLowerCase().includes(q) ||
+      (c.borrower2last  || '').toLowerCase().includes(q) ||
+      (c.borrower3first || '').toLowerCase().includes(q) ||
+      (c.borrower3last  || '').toLowerCase().includes(q) ||
+      (c.borrower4first || '').toLowerCase().includes(q) ||
+      (c.borrower4last  || '').toLowerCase().includes(q) ||
+      (c.address        || '').toLowerCase().includes(q) ||
+      (c.city           || '').toLowerCase().includes(q) ||
+      (c.state          || '').toLowerCase().includes(q) ||
+      (c.referral       || '').toLowerCase().includes(q) ||
+      (c.program        || '').toLowerCase().includes(q) ||
+      (c.email1         || '').toLowerCase().includes(q) ||
+      (c.email2         || '').toLowerCase().includes(q) ||
+      (c.cell1          || '').toLowerCase().includes(q) ||
+      (c.cell2          || '').toLowerCase().includes(q)
+    ) : sorted;
+
+    body.innerHTML = '';
+
+    if (filtered.length === 0) {
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      filtered.forEach(c => {
+        const tr = document.createElement('tr');
+        const addrLine = [c.address, c.city, c.state].filter(Boolean).join(', ');
+        const b1 = [c.borrower1first, c.borrower1last].filter(Boolean).join(' ');
+        const b2 = [c.borrower2first, c.borrower2last].filter(Boolean).join(' ');
+        const b3 = [c.borrower3first, c.borrower3last].filter(Boolean).join(' ');
+        const b4 = [c.borrower4first, c.borrower4last].filter(Boolean).join(' ');
+        const coTag = `<span class="badge badge-cosigner" style="font-size:0.68rem;padding:1px 6px;margin-left:5px">Co-Signer</span>`;
+        tr.innerHTML = `
+          <td>${propBadge(c.proptype)}</td>
+          <td>${prBadge(c.pr)}</td>
+          <td>
+            <div class="primary">${esc(b1) || '—'}</div>
+            ${b2 ? `<div class="sub">${esc(b2)}${c.cosigner2 ? coTag : ''}</div>` : ''}
+            ${b3 ? `<div class="sub">${esc(b3)}${c.cosigner3 ? coTag : ''}</div>` : ''}
+            ${b4 ? `<div class="sub">${esc(b4)}${c.cosigner4 ? coTag : ''}</div>` : ''}
+          </td>
+          <td>
+            <div>${esc(addrLine) || '—'}</div>
+            ${c.zip ? `<div class="sub">${esc(c.zip)}</div>` : ''}
+          </td>
+          <td>${fmt$(c.salesprice)}</td>
+          <td>${fmt$(c.loanamt)}</td>
+          <td>${fmtDate(c.closing)}</td>
+          <td>${fmtRate(c.rate)}</td>
+          <td>${programBadge(c.program)}</td>
+          <td>${esc(c.referral) || '—'}</td>
+          <td>
+            <div class="actions">
+              <button class="btn btn-edit" onclick="editClient('${c.id}')">Edit</button>
+              <button class="btn btn-danger" onclick="askDelete('${c.id}')">Delete</button>
+            </div>
+          </td>`;
+        body.appendChild(tr);
+      });
+    }
+    updateStats();
+  }
+
+  function updateStats() {
+    document.getElementById('stat-total').textContent = clients.length;
+
+    const vol = clients.reduce((s, c) => s + (parseFloat(c.loanamt) || 0), 0);
+    document.getElementById('stat-volume').textContent = vol >= 1e6
+      ? '$' + (vol / 1e6).toFixed(2) + 'M'
+      : '$' + vol.toLocaleString();
+
+    const rates = clients.filter(c => c.rate).map(c => parseFloat(c.rate)).filter(r => !isNaN(r));
+    document.getElementById('stat-avg-rate').textContent = rates.length
+      ? (rates.reduce((a,b) => a+b, 0) / rates.length).toFixed(3) + '%' : '—';
+
+    document.getElementById('stat-purchases').textContent = clients.filter(c => c.pr === 'P').length;
+    document.getElementById('stat-refis').textContent     = clients.filter(c => c.pr === 'R').length;
+  }
+
+  // ── Modal ────────────────────────────────────────────────
+  const FIELDS = ['proptype','pr','program','rate','salesprice','loanamt','closing','referral',
+                  'borrower1first','borrower1last','borrower2first','borrower2last',
+                  'borrower3first','borrower3last','borrower4first','borrower4last',
+                  'address','city','state','zip','cell1','email1','birthday1','cell2','email2','birthday2'];
+
+  function openModal(id) {
+    editingId = id || null;
+    document.getElementById('modalTitle').textContent = id ? 'Edit Client' : 'Add New Client';
+    FIELDS.forEach(f => { document.getElementById('f-' + f).value = ''; });
+
+    // Reset extra borrower rows and checkboxes
+    borrowerCount = 2;
+    document.getElementById('borrower3-row').style.display = 'none';
+    document.getElementById('borrower4-row').style.display = 'none';
+    document.getElementById('addBorrowerBtn').style.display = '';
+    document.getElementById('f-cosigner2').checked = false;
+    document.getElementById('f-cosigner3').checked = false;
+    document.getElementById('f-cosigner4').checked = false;
+
+    if (id) {
+      const c = clients.find(x => x.id === id);
+      if (c) {
+        FIELDS.forEach(f => { if (c[f] != null) document.getElementById('f-' + f).value = c[f]; });
+        if (c.borrower3first || c.borrower3last) { borrowerCount = 3; document.getElementById('borrower3-row').style.display = ''; }
+        if (c.borrower4first || c.borrower4last) { borrowerCount = 4; document.getElementById('borrower4-row').style.display = ''; document.getElementById('addBorrowerBtn').style.display = 'none'; }
+        document.getElementById('f-cosigner2').checked = !!c.cosigner2;
+        document.getElementById('f-cosigner3').checked = !!c.cosigner3;
+        document.getElementById('f-cosigner4').checked = !!c.cosigner4;
+      }
+    }
+
+    document.getElementById('f-proptype')._showShort?.();
+    document.getElementById('f-pr')._showShort?.();
+
+    document.getElementById('modalOverlay').classList.add('open');
+    document.getElementById('f-borrower1first').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    editingId = null;
+  }
+
+  async function saveClient() {
+    const borrower1 = document.getElementById('f-borrower1first').value.trim() || document.getElementById('f-borrower1last').value.trim();
+    if (!borrower1) { alert('Please enter at least a first or last name for Borrower 1.'); return; }
+    if (!db || !currentUser) { alert('Please sign in first.'); return; }
+
+    const data = {};
+    FIELDS.forEach(f => { data[f] = document.getElementById('f-' + f).value.trim(); });
+
+    data.cosigner2 = document.getElementById('f-cosigner2').checked;
+    data.cosigner3 = document.getElementById('f-cosigner3').checked;
+    data.cosigner4 = document.getElementById('f-cosigner4').checked;
+
+    try {
+      const now = Date.now();
+      if (editingId) {
+        const existing = clients.find(c => c.id === editingId) || {};
+        await db.ref(CLIENTS_PATH + '/' + editingId).set({
+          ...existing,
+          ...data,
+          id: editingId,
+          createdAt: existing.createdAt || now,
+          updatedAt: now
+        });
+      } else {
+        const id = uid();
+        await db.ref(CLIENTS_PATH + '/' + id).set({
+          id,
+          createdAt: now,
+          updatedAt: now,
+          ...data
+        });
+      }
+      closeModal();
+    } catch (err) {
+      alert('Could not save client. Please try again.');
+      console.error(err);
+    }
+  }
+
+  // ── Delete ───────────────────────────────────────────────
+  function askDelete(id) {
+    deletingId = id;
+    document.getElementById('confirmOverlay').classList.add('open');
+  }
+  function closeConfirm() {
+    document.getElementById('confirmOverlay').classList.remove('open');
+    deletingId = null;
+  }
+  async function confirmDelete() {
+    if (deletingId) {
+      if (!db || !currentUser) { alert('Please sign in first.'); return; }
+      try {
+        await db.ref(CLIENTS_PATH + '/' + deletingId).remove();
+      } catch (err) {
+        alert('Could not delete client. Please try again.');
+        console.error(err);
+      }
+    }
+    closeConfirm();
+  }
+  function editClient(id) { openModal(id); }
+
+  // ── Export / Import ──────────────────────────────────────
+  function exportData() {
+    if (clients.length === 0) { alert('No clients to back up yet.'); return; }
+    const blob = new Blob([JSON.stringify(clients, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `dbbackup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    localStorage.setItem('loan_crm_last_backup', Date.now());
+    dismissBackupReminder();
+  }
+
+  function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (!Array.isArray(imported)) throw new Error();
+        if (!db || !currentUser) { alert('Please sign in first.'); return; }
+        const existingIds = new Set(clients.map(c => c.id));
+        const updates = {};
+        let added = 0;
+        let updated = 0;
+        imported.forEach(raw => {
+          if (!raw || typeof raw !== 'object') return;
+          const id = raw.id || uid();
+          const now = Date.now();
+          updates[CLIENTS_PATH + '/' + id] = {
+            ...raw,
+            id,
+            createdAt: raw.createdAt || now,
+            updatedAt: now,
+            cosigner2: !!raw.cosigner2,
+            cosigner3: !!raw.cosigner3,
+            cosigner4: !!raw.cosigner4
+          };
+          if (existingIds.has(id)) updated++; else added++;
+        });
+        db.ref().update(updates)
+          .then(() => alert(`Import complete. ${added} client(s) added, ${updated} updated.`))
+          .catch(err => {
+            alert('Could not import backup. Please try again.');
+            console.error(err);
+          });
+      } catch {
+        alert('Could not read file. Make sure it is a valid CRM backup (.json).');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  // ── Backup Reminder ──────────────────────────────────────
+  function checkBackupReminder() {
+    if (clients.length === 0) return;
+    const last = parseInt(localStorage.getItem('loan_crm_last_backup') || '0', 10);
+    const days = (Date.now() - last) / (1000 * 60 * 60 * 24);
+    if (days >= 30) {
+      document.getElementById('backupBannerMsg').textContent = last
+        ? 'You haven\'t backed up in over 30 days. Click Backup to save your client data.'
+        : 'You haven\'t backed up yet. Click Backup to save your client data.';
+      document.getElementById('backupBanner').style.display = 'flex';
+    }
+  }
+  function dismissBackupReminder() {
+    document.getElementById('backupBanner').style.display = 'none';
+  }
+
+  // ── Overlay / keyboard ───────────────────────────────────
+  document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+  document.getElementById('confirmOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirm();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeModal(); closeConfirm(); }
+  });
+
+  // ── Short-display selects ────────────────────────────────
+  function initShortSelect(id) {
+    const sel = document.getElementById(id);
+    const fullTexts = Array.from(sel.options).map(o => o.text);
+
+    function showShort() {
+      Array.from(sel.options).forEach((opt, i) => {
+        opt.text = (opt.selected && opt.value) ? opt.value : fullTexts[i];
+      });
+    }
+    function showFull() {
+      Array.from(sel.options).forEach((opt, i) => { opt.text = fullTexts[i]; });
+    }
+
+    sel.addEventListener('mousedown', showFull);
+    sel.addEventListener('keydown',   showFull);
+    sel.addEventListener('change',    showShort);
+    sel.addEventListener('blur',      showShort);
+    sel._showShort = showShort;
+  }
+
+  initShortSelect('f-proptype');
+  initShortSelect('f-pr');
+
+  // ── Add Borrower 3 / 4 ───────────────────────────────────
+  let borrowerCount = 2;
+  function addBorrower() {
+    if (borrowerCount < 4) {
+      borrowerCount++;
+      document.getElementById('borrower' + borrowerCount + '-row').style.display = '';
+    }
+    if (borrowerCount >= 4) document.getElementById('addBorrowerBtn').style.display = 'none';
+  }
+
+  // ── Init ─────────────────────────────────────────────────
+  document.getElementById('header-date').textContent =
+    new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+  initFirebase();
+</script>
+</body>
+</html>
