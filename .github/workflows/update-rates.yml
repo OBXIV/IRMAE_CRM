@@ -17,6 +17,8 @@ jobs:
         with:
           python-version: "3.x"
       - name: Update rates.json
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python scripts/update_rates.py
       - name: Commit updated rates
         run: |

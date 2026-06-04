@@ -103,12 +103,14 @@ The dashboard shows:
 - National 15-year fixed mortgage rate
 - Refi Watch count
 
-Rates come from Freddie Mac PMMS via FRED:
+Rates come from Freddie Mac PMMS via the official FRED API:
 
 - 30-year series: `MORTGAGE30US`
 - 15-year series: `MORTGAGE15US`
 
 The GitHub Action checks for updated rates every morning and commits a refreshed `rates.json` when values change. PMMS is a national weekly average, so the app checks daily but the underlying Freddie Mac values typically change weekly.
+
+The updater requires a free FRED API key saved as a GitHub repository secret named `FRED_API_KEY`. If FRED is temporarily slow or unavailable, the updater keeps the existing cached values in `rates.json` instead of failing the workflow for a transient network issue.
 
 Refi Watch flags loans where the client rate is at least `0.75%` above the current national 30-year average. It is a triage signal only, not a rate quote or refinance recommendation.
 
