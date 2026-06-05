@@ -265,7 +265,7 @@
     /* Stats */
     .stats {
       display: grid;
-      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      grid-template-columns: repeat(6, minmax(150px, 1fr));
       gap: 16px;
       margin-bottom: 20px;
     }
@@ -289,6 +289,158 @@
     }
     .stat-card .num { font-size: 2rem; font-weight: 800; color: var(--text); letter-spacing: 0; }
     .stat-card .lbl { font-size: 0.72rem; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.7px; }
+    .stat-card.actionable {
+      cursor: pointer;
+      transition: transform 0.14s, border-color 0.14s, background 0.14s;
+    }
+    .stat-card.actionable:hover,
+    .stat-card.actionable.active {
+      transform: translateY(-1px);
+      border-color: rgba(56, 189, 248, 0.5);
+      background: linear-gradient(180deg, rgba(20, 33, 54, 0.98), rgba(15, 23, 38, 0.94));
+    }
+    .stat-card.referral-stat::before { background: linear-gradient(#f59e0b, #38bdf8); }
+    .stat-card.referral-stat .lbl {
+      margin: 0 0 8px;
+      color: #cbd5e1;
+    }
+    .stat-card.referral-stat .num {
+      font-size: 1.12rem;
+      line-height: 1.18;
+      overflow-wrap: anywhere;
+    }
+    .metric-detail {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      margin-top: 11px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+    .metric-detail strong { color: #fcd34d; font-weight: 850; }
+    .referral-preview {
+      display: none;
+      margin: -4px 0 20px;
+      padding: 18px;
+      background: rgba(18, 28, 46, 0.86);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 16px 44px rgba(0,0,0,0.18);
+    }
+    .referral-preview.open { display: block; }
+    .referral-preview-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .referral-preview-title {
+      color: var(--text);
+      font-size: 0.92rem;
+      font-weight: 850;
+    }
+    .referral-preview-list {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .referral-rank-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: rgba(8, 13, 23, 0.48);
+      min-width: 0;
+    }
+    .referral-rank {
+      color: #fcd34d;
+      font-size: 0.72rem;
+      font-weight: 850;
+      margin-bottom: 7px;
+    }
+    .referral-name {
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 850;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+    .referral-meta {
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.45;
+      margin-top: 7px;
+    }
+    .referral-more {
+      border: 1px solid rgba(56, 189, 248, 0.36);
+      background: rgba(56, 189, 248, 0.12);
+      color: #bae6fd;
+    }
+    .referral-more:hover { background: rgba(56, 189, 248, 0.2); }
+    .page-view[hidden],
+    .referral-partners-page[hidden] { display: none !important; }
+    .referral-partners-page {
+      display: grid;
+      gap: 18px;
+    }
+    .page-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 20px 0 4px;
+    }
+    .page-kicker {
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 850;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .page-head h2 {
+      font-size: 1.45rem;
+      color: var(--text);
+      line-height: 1.15;
+    }
+    .partner-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(180px, 1fr));
+      gap: 14px;
+    }
+    .partner-summary {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px 18px;
+      background: rgba(18, 28, 46, 0.86);
+      border-left: 3px solid #f59e0b;
+    }
+    .partner-summary .num {
+      font-size: 1.65rem;
+      color: var(--text);
+      font-weight: 850;
+    }
+    .partner-summary .lbl {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+    .referral-table-wrap {
+      background: rgba(18, 28, 46, 0.88);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 18px 54px rgba(0,0,0,0.24);
+      overflow-x: auto;
+    }
+    .referral-table .rank-cell {
+      color: #fcd34d;
+      font-weight: 850;
+      width: 64px;
+    }
 
     .market-panel {
       display: grid;
@@ -650,10 +802,20 @@
     .drawer-actions .btn { flex: 1 1 120px; }
     .drawer-actions .btn-danger { padding: 10px 18px; font-size: 0.9rem; }
 
+    @media (max-width: 1180px) {
+      .stats,
+      .referral-preview-list,
+      .partner-summary-grid { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+    }
+
     @media (max-width: 640px) {
       .stats { grid-template-columns: 1fr; }
       .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
       .market-panel { grid-template-columns: 1fr; }
+      .referral-preview-head,
+      .page-head { flex-direction: column; align-items: stretch; }
+      .referral-preview-list,
+      .partner-summary-grid { grid-template-columns: 1fr; }
       .form-grid .full { grid-column: 1; }
       header { padding: 10px 16px; }
       .brand-logo { height: 50px; max-width: 68vw; }
@@ -710,6 +872,7 @@
 
 <div class="container">
 
+  <section class="page-view" id="dashboardView">
   <div class="topbar">
     <input class="search-input" type="text" id="searchInput" placeholder="Search by borrower, address, city, referral partner, program…" oninput="renderTable()" />
     <button class="btn btn-primary" onclick="openModal()">+ Add Client</button>
@@ -730,7 +893,23 @@
     <div class="stat-card"><div class="num" id="stat-volume">$0</div><div class="lbl">Total Loan Volume</div></div>
     <div class="stat-card"><div class="num" id="stat-avg-rate">—</div><div class="lbl">Avg Interest Rate</div></div>
     <div class="stat-card"><div class="num" id="stat-purchases">0</div><div class="lbl">Purchases</div></div>
+    <div class="stat-card referral-stat actionable" id="stat-referral-card" onclick="toggleReferralPreview()" role="button" tabindex="0" aria-expanded="false">
+      <div class="lbl">Top Referral Partner</div>
+      <div class="num referral-name" id="stat-top-referral-name">—</div>
+      <div class="metric-detail">
+        <span id="stat-top-referral-loans">0 Loans</span>
+        <strong id="stat-top-referral-volume">$0 Volume</strong>
+      </div>
+    </div>
     <div class="stat-card"><div class="num" id="stat-refis">0</div><div class="lbl">Refinances</div></div>
+  </div>
+
+  <div class="referral-preview" id="referralPreview">
+    <div class="referral-preview-head">
+      <div class="referral-preview-title">Top Referral Partners</div>
+      <button class="btn referral-more" onclick="openReferralPartnersPage()">View All Referral Partners</button>
+    </div>
+    <div class="referral-preview-list" id="referralPreviewList"></div>
   </div>
 
   <div class="market-panel" id="marketPanel">
@@ -770,6 +949,52 @@
       <p>No clients yet. Click <strong>+ Add Client</strong> to get started.</p>
     </div>
   </div>
+  </section>
+
+  <section class="referral-partners-page" id="referralPartnersView" hidden>
+    <div class="page-head">
+      <div>
+        <div class="page-kicker">Referral Partners</div>
+        <h2>Referral Partner Performance</h2>
+      </div>
+      <button class="btn btn-cancel" onclick="closeReferralPartnersPage()">Back to Dashboard</button>
+    </div>
+
+    <div class="partner-summary-grid">
+      <div class="partner-summary">
+        <div class="num" id="partner-summary-count">0</div>
+        <div class="lbl">Active Partners</div>
+      </div>
+      <div class="partner-summary">
+        <div class="num" id="partner-summary-loans">0</div>
+        <div class="lbl">Referred Loans</div>
+      </div>
+      <div class="partner-summary">
+        <div class="num" id="partner-summary-volume">$0</div>
+        <div class="lbl">Referred Volume</div>
+      </div>
+    </div>
+
+    <div class="referral-table-wrap">
+      <table class="referral-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Referral Partner</th>
+            <th>Loans</th>
+            <th>Volume</th>
+            <th>Purchases</th>
+            <th>Refinances</th>
+          </tr>
+        </thead>
+        <tbody id="referralPartnersBody"></tbody>
+      </table>
+      <div class="empty-state" id="referralEmptyState" style="display:none">
+        <div class="icon">∅</div>
+        <p>No referral partner data yet.</p>
+      </div>
+    </div>
+  </section>
 </div>
 
 <!-- Client Detail Drawer -->
@@ -1013,12 +1238,67 @@
   let deletingId = null;
   let selectedClientId = null;
   let showRefiOnly = false;
+  let showReferralPreview = false;
   let db = null;
   let auth = null;
   let currentUser = null;
   let listening = false;
   let marketRates = null;
   const REFI_SPREAD_THRESHOLD = 0.75;
+
+  function isLocalReferralPreview() {
+    const localHosts = ['localhost', '127.0.0.1', '::1'];
+    const params = new URLSearchParams(location.search);
+    return localHosts.includes(location.hostname) && params.get('preview') === 'referrals';
+  }
+
+  function buildReferralPreviewClients() {
+    const partners = [
+      { referral: 'Tanner Fisher', count: 14, volume: 5200000, purchases: 10 },
+      { referral: 'Annie Veruno', count: 9, volume: 3350000, purchases: 6 },
+      { referral: 'Heather Ferguson', count: 7, volume: 2810000, purchases: 5 },
+      { referral: 'Ryan', count: 5, volume: 1750000, purchases: 3 },
+      { referral: 'Kat Allaway', count: 4, volume: 1420000, purchases: 3 },
+      { referral: 'Zillow', count: 3, volume: 990000, purchases: 2 }
+    ];
+    const borrowers = [
+      ['Ernesto', 'Arceo'], ['Maya', 'Collins'], ['Derek', 'Walsh'], ['Sofia', 'Hayes'],
+      ['Nolan', 'Reed'], ['Isabella', 'Parker'], ['Carter', 'Brooks'], ['Avery', 'Mills']
+    ];
+    const programs = ['Conventional', 'FHA', 'VA', 'Jumbo'];
+    const propertyTypes = ['O', 'O', 'IP', '2nd'];
+
+    return partners.flatMap((partner, partnerIndex) => {
+      const baseLoan = Math.floor(partner.volume / partner.count);
+      return Array.from({ length: partner.count }, (_, i) => {
+        const [first, last] = borrowers[(partnerIndex + i) % borrowers.length];
+        const loanamt = i === partner.count - 1
+          ? partner.volume - (baseLoan * (partner.count - 1))
+          : baseLoan;
+        const month = String(((partnerIndex + i) % 12) + 1).padStart(2, '0');
+        const day = String(((i * 3) % 25) + 3).padStart(2, '0');
+        return {
+          id: `preview-${partnerIndex}-${i}`,
+          borrower1first: first,
+          borrower1last: last,
+          address: `${1000 + partnerIndex * 50 + i} Ridge View Dr`,
+          city: 'Boise',
+          state: 'ID',
+          zip: '83704',
+          proptype: propertyTypes[(partnerIndex + i) % propertyTypes.length],
+          pr: i < partner.purchases ? 'P' : 'R',
+          program: programs[(partnerIndex + i) % programs.length],
+          rate: (5.875 + ((partnerIndex + i) % 5) * 0.125).toFixed(3),
+          salesprice: Math.round(loanamt * 1.18),
+          loanamt,
+          closing: `2026-${month}-${day}`,
+          referral: partner.referral,
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        };
+      });
+    });
+  }
 
   function showBanner(message, isError = false) {
     const banner = document.getElementById('syncBanner');
@@ -1073,6 +1353,15 @@
   }
 
   function initFirebase() {
+    if (isLocalReferralPreview()) {
+      clients = buildReferralPreviewClients();
+      currentUser = { email: 'local-preview' };
+      document.getElementById('currentUserEmail').textContent = 'Local referral preview';
+      document.getElementById('loginOverlay').classList.remove('open');
+      renderTable();
+      return;
+    }
+
     const config = getFirebaseConfig();
     if (!config) {
       document.getElementById('configOverlay').classList.add('open');
@@ -1145,6 +1434,51 @@
     if (!n && n !== 0) return '—';
     const v = parseFloat(n);
     return isNaN(v) ? '—' : '$' + v.toLocaleString();
+  }
+
+  function fmtCompactMoney(n) {
+    const v = parseFloat(n) || 0;
+    if (v >= 1000000000) return '$' + (v / 1000000000).toFixed(1) + 'B';
+    if (v >= 1000000) return '$' + (v / 1000000).toFixed(1) + 'M';
+    if (v >= 1000) return '$' + Math.round(v / 1000) + 'K';
+    return '$' + v.toLocaleString();
+  }
+
+  function loanCountLabel(count) {
+    return `${count} Loan${count === 1 ? '' : 's'}`;
+  }
+
+  function cleanReferralName(value) {
+    return String(value || '').trim().replace(/\s+/g, ' ');
+  }
+
+  function getReferralPartnerStats() {
+    const partnerMap = new Map();
+    clients.forEach(c => {
+      const name = cleanReferralName(c.referral);
+      if (!name || name.toLowerCase() === 'self') return;
+
+      const key = name.toLowerCase();
+      if (!partnerMap.has(key)) {
+        partnerMap.set(key, {
+          name,
+          count: 0,
+          volume: 0,
+          purchases: 0,
+          refis: 0
+        });
+      }
+
+      const row = partnerMap.get(key);
+      row.count += 1;
+      row.volume += parseFloat(c.loanamt) || 0;
+      if (c.pr === 'P') row.purchases += 1;
+      if (c.pr === 'R') row.refis += 1;
+    });
+
+    return Array.from(partnerMap.values())
+      .sort((a, b) => b.count - a.count || b.volume - a.volume || a.name.localeCompare(b.name))
+      .map((row, index) => ({ ...row, rank: index + 1 }));
   }
 
   function fmtRate(r) {
@@ -1407,6 +1741,80 @@
     renderTable();
   }
 
+  function toggleReferralPreview() {
+    showReferralPreview = !showReferralPreview;
+    updateStats();
+  }
+
+  function referralRankCard(row) {
+    return `
+      <div class="referral-rank-card">
+        <div class="referral-rank">#${row.rank}</div>
+        <div class="referral-name">${esc(row.name)}</div>
+        <div class="referral-meta">
+          ${loanCountLabel(row.count)}<br>
+          ${fmtCompactMoney(row.volume)} Volume
+        </div>
+      </div>`;
+  }
+
+  function renderReferralPreview(rows = getReferralPartnerStats()) {
+    const panel = document.getElementById('referralPreview');
+    const list = document.getElementById('referralPreviewList');
+    const card = document.getElementById('stat-referral-card');
+    panel.classList.toggle('open', showReferralPreview);
+    card.classList.toggle('active', showReferralPreview);
+    card.setAttribute('aria-expanded', String(showReferralPreview));
+
+    if (!showReferralPreview) return;
+
+    const topRows = rows.slice(0, 5);
+    list.innerHTML = topRows.length
+      ? topRows.map(referralRankCard).join('')
+      : `<div class="empty-state" style="padding:18px 0"><p>No referral partner data yet.</p></div>`;
+  }
+
+  function openReferralPartnersPage() {
+    showReferralPreview = false;
+    closeClientDrawer();
+    document.getElementById('dashboardView').hidden = true;
+    document.getElementById('referralPartnersView').hidden = false;
+    renderReferralPartnersPage();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function closeReferralPartnersPage() {
+    document.getElementById('referralPartnersView').hidden = true;
+    document.getElementById('dashboardView').hidden = false;
+    updateStats();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function renderReferralPartnersPage(rows = getReferralPartnerStats()) {
+    const totalLoans = rows.reduce((sum, row) => sum + row.count, 0);
+    const totalVolume = rows.reduce((sum, row) => sum + row.volume, 0);
+    document.getElementById('partner-summary-count').textContent = rows.length;
+    document.getElementById('partner-summary-loans').textContent = totalLoans;
+    document.getElementById('partner-summary-volume').textContent = fmtCompactMoney(totalVolume);
+
+    const body = document.getElementById('referralPartnersBody');
+    const empty = document.getElementById('referralEmptyState');
+    body.innerHTML = '';
+    empty.style.display = rows.length ? 'none' : 'block';
+
+    rows.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="rank-cell">#${row.rank}</td>
+        <td><div class="primary">${esc(row.name)}</div></td>
+        <td>${loanCountLabel(row.count)}</td>
+        <td>${fmtCompactMoney(row.volume)}</td>
+        <td>${row.purchases}</td>
+        <td>${row.refis}</td>`;
+      body.appendChild(tr);
+    });
+  }
+
   function renderClientDrawer() {
     const c = clients.find(x => x.id === selectedClientId);
     const content = document.getElementById('clientDrawerContent');
@@ -1639,6 +2047,14 @@
     document.getElementById('stat-purchases').textContent = clients.filter(c => c.pr === 'P').length;
     document.getElementById('stat-refis').textContent     = clients.filter(c => c.pr === 'R').length;
 
+    const referralRows = getReferralPartnerStats();
+    const topReferral = referralRows[0];
+    document.getElementById('stat-top-referral-name').textContent = topReferral ? topReferral.name : '—';
+    document.getElementById('stat-top-referral-loans').textContent = topReferral ? loanCountLabel(topReferral.count) : '0 Loans';
+    document.getElementById('stat-top-referral-volume').textContent = topReferral ? fmtCompactMoney(topReferral.volume) + ' Volume' : '$0 Volume';
+    renderReferralPreview(referralRows);
+    if (!document.getElementById('referralPartnersView').hidden) renderReferralPartnersPage(referralRows);
+
     const refiWatch = clients.filter(shouldFlagRefi).length;
     document.getElementById('refiWatchCount').textContent = refiWatch;
     document.getElementById('refiWatchCard').classList.toggle('active', showRefiOnly);
@@ -1855,11 +2271,23 @@
       toggleRefiFilter();
     }
   });
+  document.getElementById('stat-referral-card').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleReferralPreview();
+    }
+  });
   document.addEventListener('click', e => {
     if (!e.target.closest('.utility-menu')) closeActionMenu();
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeModal(); closeConfirm(); closeClientDrawer(); closeActionMenu(); }
+    if (e.key === 'Escape') {
+      closeModal();
+      closeConfirm();
+      closeClientDrawer();
+      closeActionMenu();
+      if (!document.getElementById('referralPartnersView').hidden) closeReferralPartnersPage();
+    }
   });
 
   // ── Short-display selects ────────────────────────────────
