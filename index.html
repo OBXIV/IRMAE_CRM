@@ -10,34 +10,62 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --bg: #090f1a;
+      --bg-soft: #0f1726;
+      --panel: #121c2e;
+      --panel-2: #172235;
+      --line: rgba(148, 163, 184, 0.18);
+      --line-strong: rgba(148, 163, 184, 0.28);
+      --text: #e5edf7;
+      --muted: #93a4b8;
+      --faint: #617086;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --shadow: 0 22px 70px rgba(0,0,0,0.36);
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f0f4f8;
-      color: #1a202c;
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 18% -12%, rgba(56, 189, 248, 0.18), transparent 34%),
+        linear-gradient(135deg, #070b12 0%, #0d1422 46%, #101827 100%);
+      color: var(--text);
       min-height: 100vh;
     }
 
     header {
-      background: #1e3a5f;
-      color: white;
-      padding: 18px 32px;
+      background: rgba(9, 15, 26, 0.86);
+      color: var(--text);
+      padding: 10px 32px;
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 12px 42px rgba(0,0,0,0.25);
+      backdrop-filter: blur(14px);
     }
-    header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: 0.3px; }
-    header span { font-size: 0.85rem; opacity: 0.75; position: absolute; right: 32px; }
+    .brand-logo {
+      display: block;
+      height: 64px;
+      width: auto;
+      max-width: min(360px, 58vw);
+      border-radius: 6px;
+      box-shadow: 0 10px 34px rgba(0,0,0,0.24);
+    }
+    header span { font-size: 0.82rem; color: var(--muted); position: absolute; right: 32px; }
 
-    .container { max-width: 1400px; margin: 0 auto; padding: 28px 24px; }
+    .container { max-width: 1480px; margin: 0 auto; padding: 30px 24px; }
 
     .setup-overlay {
       display: none;
       position: fixed;
       inset: 0;
       z-index: 400;
-      background: #f0f4f8;
+      background: var(--bg);
       align-items: center;
       justify-content: center;
       padding: 20px;
@@ -45,24 +73,26 @@
     .setup-overlay.open { display: flex; }
     .setup-card {
       width: min(560px, 100%);
-      background: white;
+      background: var(--panel);
       border-radius: 12px;
       padding: 28px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.16);
-      border: 1px solid #e5e7eb;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--line);
     }
-    .setup-card h2 { color: #1e3a5f; font-size: 1.25rem; margin-bottom: 8px; }
-    .setup-card p { color: #4b5563; font-size: 0.92rem; line-height: 1.55; margin-bottom: 14px; }
+    .setup-card h2 { color: var(--text); font-size: 1.25rem; margin-bottom: 8px; }
+    .setup-card p { color: var(--muted); font-size: 0.92rem; line-height: 1.55; margin-bottom: 14px; }
     .setup-card textarea {
       width: 100%;
       min-height: 130px;
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--line-strong);
       border-radius: 8px;
       padding: 10px;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 0.8rem;
       resize: vertical;
       margin: 8px 0 12px;
+      color: var(--text);
+      background: #0a1020;
     }
     .setup-error { display: none; color: #b91c1c; font-size: 0.85rem; margin-bottom: 12px; }
     .setup-error.show { display: block; }
@@ -74,44 +104,27 @@
     }
     .login-card input {
       padding: 10px 12px;
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--line-strong);
       border-radius: 8px;
       font-size: 0.95rem;
+      color: var(--text);
+      background: #0a1020;
     }
     .login-actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .sync-banner {
       display: none;
-      background: #eff6ff;
-      border-bottom: 1px solid #bfdbfe;
-      color: #1d4ed8;
+      background: rgba(14, 165, 233, 0.16);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.28);
+      color: #bae6fd;
       padding: 8px 24px;
       font-size: 0.85rem;
     }
     .sync-banner.show { display: block; }
     .sync-banner.error { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
 
-    /* Backup reminder banner */
-    .backup-banner {
-      display: none;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      background: #fefce8;
-      border: 1px solid #fde047;
-      border-radius: 10px;
-      padding: 12px 18px;
-      margin-bottom: 20px;
-      font-size: 0.9rem;
-      color: #713f12;
-    }
-    .backup-banner .banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
-    .btn-banner-backup { background: #ca8a04; color: white; font-size: 0.82rem; padding: 6px 12px; }
-    .btn-banner-backup:hover { background: #a16207; }
-    .btn-banner-dismiss { background: transparent; color: #92400e; font-size: 0.82rem; padding: 6px 10px; border: 1px solid #fcd34d; }
-    .btn-banner-dismiss:hover { background: #fef9c3; }
-    .btn-add-borrower { background: none; border: 1px dashed #93c5fd; color: #2563eb; border-radius: 7px; padding: 5px 12px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
-    .btn-add-borrower:hover { background: #eff6ff; }
-    .cosigner-check { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; font-weight: 600; color: #6b7280; padding: 2px 0; grid-column: 1 / -1; }
+    .btn-add-borrower { background: none; border: 1px dashed rgba(56, 189, 248, 0.55); color: #7dd3fc; border-radius: 7px; padding: 5px 12px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
+    .btn-add-borrower:hover { background: rgba(56, 189, 248, 0.12); }
+    .cosigner-check { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; font-weight: 600; color: var(--muted); padding: 2px 0; grid-column: 1 / -1; }
     .cosigner-check input[type="checkbox"] { width: 15px; height: 15px; cursor: pointer; accent-color: #1e3a5f; }
     .badge-cosigner { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 
@@ -119,7 +132,7 @@
     .topbar {
       display: flex;
       gap: 12px;
-      margin-bottom: 24px;
+      margin-bottom: 26px;
       flex-wrap: wrap;
       align-items: center;
     }
@@ -127,15 +140,17 @@
     .search-input {
       flex: 1;
       min-width: 220px;
-      padding: 10px 14px;
-      border: 1px solid #cbd5e0;
+      padding: 12px 15px;
+      border: 1px solid var(--line);
       border-radius: 8px;
       font-size: 0.95rem;
-      background: white;
+      background: rgba(15, 23, 38, 0.84);
+      color: var(--text);
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+    .search-input::placeholder { color: var(--faint); }
+    .search-input:focus { border-color: rgba(56, 189, 248, 0.72); box-shadow: 0 0 0 3px rgba(56,189,248,0.14); }
 
     .btn {
       padding: 10px 18px;
@@ -144,124 +159,188 @@
       font-size: 0.9rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s, transform 0.1s;
+      transition: background 0.15s, transform 0.1s, border-color 0.15s;
       white-space: nowrap;
     }
     .btn:active { transform: scale(0.97); }
-    .btn-primary   { background: #1e3a5f; color: white; }
-    .btn-primary:hover { background: #16304f; }
+    .btn-primary   { background: #0284c7; color: white; }
+    .btn-primary:hover { background: #0369a1; }
     .btn-success   { background: #16a34a; color: white; }
     .btn-success:hover { background: #15803d; }
     .btn-danger    { background: #dc2626; color: white; font-size: 0.82rem; padding: 6px 12px; }
     .btn-danger:hover { background: #b91c1c; }
     .btn-edit      { background: #2563eb; color: white; font-size: 0.82rem; padding: 6px 12px; }
     .btn-edit:hover { background: #1d4ed8; }
-    .btn-cancel    { background: #e5e7eb; color: #374151; }
-    .btn-cancel:hover { background: #d1d5db; }
+    .btn-cancel    { background: rgba(148, 163, 184, 0.14); color: var(--text); border: 1px solid var(--line); }
+    .btn-cancel:hover { background: rgba(148, 163, 184, 0.22); }
     .btn-export    { background: #0891b2; color: white; }
     .btn-export:hover { background: #0e7490; }
     .btn-import    { background: #7c3aed; color: white; }
     .btn-import:hover { background: #6d28d9; }
-    .btn-logout    { background: #475569; color: white; padding: 7px 12px; font-size: 0.82rem; }
-    .btn-logout:hover { background: #334155; }
+    .utility-menu {
+      position: relative;
+      margin-left: 2px;
+    }
+    .menu-trigger {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(148, 163, 184, 0.16);
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-size: 1.25rem;
+      line-height: 1;
+    }
+    .menu-trigger:hover { background: rgba(148, 163, 184, 0.24); }
+    .action-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 80;
+      width: 190px;
+      background: var(--panel);
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 6px;
+    }
+    .action-menu.open { display: grid; gap: 4px; }
+    .menu-item {
+      width: 100%;
+      border: 0;
+      border-radius: 7px;
+      padding: 10px 11px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .menu-item:hover { background: rgba(56, 189, 248, 0.12); color: #bae6fd; }
+    .menu-item.danger { color: #fca5a5; }
+    .menu-item.danger:hover { background: rgba(239, 68, 68, 0.14); color: #fecaca; }
 
     /* Stats */
     .stats {
-      display: flex;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(150px, 1fr));
       gap: 16px;
-      margin-bottom: 22px;
-      flex-wrap: wrap;
+      margin-bottom: 20px;
     }
     .stat-card {
-      background: white;
-      border-radius: 10px;
-      padding: 14px 22px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-      flex: 1;
-      min-width: 140px;
-      text-align: center;
+      background: linear-gradient(180deg, rgba(18, 28, 46, 0.95), rgba(15, 23, 38, 0.9));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px 20px;
+      box-shadow: 0 16px 44px rgba(0,0,0,0.18);
+      min-width: 0;
+      text-align: left;
+      position: relative;
+      overflow: hidden;
     }
-    .stat-card .num { font-size: 1.8rem; font-weight: 700; color: #1e3a5f; }
-    .stat-card .lbl { font-size: 0.78rem; color: #6b7280; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      background: linear-gradient(#38bdf8, #22c55e);
+    }
+    .stat-card .num { font-size: 2rem; font-weight: 800; color: var(--text); letter-spacing: 0; }
+    .stat-card .lbl { font-size: 0.72rem; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.7px; }
 
     .market-panel {
       display: grid;
       grid-template-columns: repeat(3, minmax(180px, 1fr));
       gap: 14px;
-      background: white;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      padding: 14px;
-      margin-bottom: 22px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      margin-bottom: 20px;
     }
     .market-card {
-      border-left: 4px solid #0891b2;
-      padding: 4px 12px;
+      background: rgba(18, 28, 46, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px 18px;
       min-width: 0;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.16);
+      border-left: 3px solid var(--accent);
     }
-    .market-card.watch { border-left-color: #ca8a04; }
-    .market-card .rate-value { font-size: 1.65rem; line-height: 1; font-weight: 800; color: #1e3a5f; }
-    .market-card .rate-label { margin-top: 5px; color: #4b5563; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }
-    .market-card .rate-note { margin-top: 4px; color: #6b7280; font-size: 0.78rem; }
-    .refi-badge { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; margin-left: 5px; }
+    .market-card.watch { border-left-color: var(--warn); cursor: pointer; }
+    .market-card.watch.active { background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.46); }
+    .market-card .rate-value { font-size: 1.95rem; line-height: 1; font-weight: 850; color: var(--text); }
+    .market-card .rate-label { margin-top: 7px; color: var(--muted); font-size: 0.76rem; font-weight: 750; text-transform: uppercase; letter-spacing: 0.7px; }
+    .market-card .rate-note { margin-top: 5px; color: var(--faint); font-size: 0.78rem; }
+    .refi-badge { background: rgba(245, 158, 11, 0.17); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.36); margin-left: 5px; }
 
     /* Table */
     .table-wrap {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+      background: rgba(18, 28, 46, 0.88);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 18px 54px rgba(0,0,0,0.24);
       overflow-x: auto;
     }
 
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 1100px; }
-    thead { background: #1e3a5f; color: white; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.87rem; min-width: 920px; }
+    thead { background: rgba(8, 13, 23, 0.94); color: var(--muted); }
     thead th {
-      padding: 12px 12px;
+      padding: 13px 16px;
       text-align: left;
-      font-weight: 600;
-      font-size: 0.78rem;
+      font-weight: 750;
+      font-size: 0.72rem;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.8px;
       white-space: nowrap;
     }
-    tbody tr { border-bottom: 1px solid #f1f5f9; transition: background 0.12s; }
+    tbody tr {
+      border-bottom: 1px solid var(--line);
+      transition: background 0.14s, box-shadow 0.14s;
+      cursor: pointer;
+    }
     tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: #f8fafc; }
-    td { padding: 10px 12px; vertical-align: middle; }
-    td .primary { font-weight: 600; color: #1e3a5f; }
-    td .sub { font-size: 0.76rem; color: #6b7280; margin-top: 2px; }
+    tbody tr:hover { background: rgba(56, 189, 248, 0.08); box-shadow: inset 3px 0 0 rgba(56, 189, 248, 0.86); }
+    tbody tr.selected { background: rgba(56, 189, 248, 0.13); box-shadow: inset 3px 0 0 var(--accent); }
+    td { padding: 14px 16px; vertical-align: middle; color: #d7e3f2; }
+    td .primary { font-weight: 750; color: var(--text); }
+    td .sub { font-size: 0.76rem; color: var(--muted); margin-top: 4px; }
+    .table-loan { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .status-stack { display: flex; flex-wrap: wrap; gap: 6px; }
+    .row-arrow { color: var(--faint); font-size: 1rem; text-align: right; }
 
     /* Badges */
     .badge {
       display: inline-block;
-      padding: 2px 8px;
+      padding: 4px 9px;
       border-radius: 20px;
-      font-size: 0.73rem;
+      font-size: 0.72rem;
       font-weight: 700;
       white-space: nowrap;
+      border: 1px solid transparent;
     }
     /* Property type */
-    .badge-O    { background: #dbeafe; color: #1e40af; }
-    .badge-2nd  { background: #fef3c7; color: #92400e; }
-    .badge-IP   { background: #f3e8ff; color: #6b21a8; }
+    .badge-O    { background: rgba(34, 197, 94, 0.15); color: #86efac; border-color: rgba(34, 197, 94, 0.32); }
+    .badge-2nd  { background: rgba(59, 130, 246, 0.16); color: #93c5fd; border-color: rgba(59, 130, 246, 0.34); }
+    .badge-IP   { background: rgba(245, 158, 11, 0.16); color: #fcd34d; border-color: rgba(245, 158, 11, 0.34); }
     /* P/R */
-    .badge-P    { background: #d1fae5; color: #065f46; }
-    .badge-R    { background: #fee2e2; color: #991b1b; }
+    .badge-P    { background: rgba(20, 184, 166, 0.16); color: #5eead4; border-color: rgba(20, 184, 166, 0.34); }
+    .badge-R    { background: rgba(244, 63, 94, 0.16); color: #fda4af; border-color: rgba(244, 63, 94, 0.34); }
     /* Program */
-    .badge-fha  { background: #dbeafe; color: #1e40af; }
-    .badge-va   { background: #d1fae5; color: #065f46; }
-    .badge-conv { background: #ede9fe; color: #5b21b6; }
-    .badge-usda { background: #fef3c7; color: #92400e; }
-    .badge-jumbo{ background: #fee2e2; color: #991b1b; }
-    .badge-other{ background: #f3f4f6; color: #374151; }
+    .badge-fha  { background: rgba(59, 130, 246, 0.16); color: #93c5fd; border-color: rgba(59, 130, 246, 0.32); }
+    .badge-va   { background: rgba(34, 197, 94, 0.15); color: #86efac; border-color: rgba(34, 197, 94, 0.32); }
+    .badge-conv { background: rgba(139, 92, 246, 0.16); color: #c4b5fd; border-color: rgba(139, 92, 246, 0.32); }
+    .badge-usda { background: rgba(245, 158, 11, 0.16); color: #fcd34d; border-color: rgba(245, 158, 11, 0.32); }
+    .badge-jumbo{ background: rgba(239, 68, 68, 0.16); color: #fca5a5; border-color: rgba(239, 68, 68, 0.32); }
+    .badge-other{ background: rgba(148, 163, 184, 0.14); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.26); }
 
-    .actions { display: flex; gap: 6px; }
+    .actions { display: flex; gap: 8px; }
 
     .empty-state {
       text-align: center;
       padding: 60px 20px;
-      color: #9ca3af;
+      color: var(--muted);
     }
     .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
 
@@ -270,7 +349,7 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.45);
+      background: rgba(0,0,0,0.58);
       z-index: 100;
       align-items: center;
       justify-content: center;
@@ -279,8 +358,9 @@
     .modal-overlay.open { display: flex; }
 
     .modal {
-      background: white;
-      border-radius: 14px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
       padding: 28px 30px;
       width: 100%;
       max-width: 700px;
@@ -288,16 +368,16 @@
       overflow-y: auto;
       box-shadow: 0 20px 60px rgba(0,0,0,0.25);
     }
-    .modal h2 { font-size: 1.2rem; color: #1e3a5f; margin-bottom: 6px; font-weight: 700; }
+    .modal h2 { font-size: 1.2rem; color: var(--text); margin-bottom: 6px; font-weight: 750; }
     .modal .section-label {
       font-size: 0.72rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: #9ca3af;
+      color: var(--muted);
       margin: 18px 0 10px;
       padding-bottom: 6px;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid var(--line);
     }
 
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -305,19 +385,20 @@
     .form-grid .third { grid-column: span 1; }
 
     .field { display: flex; flex-direction: column; gap: 4px; }
-    .field label { font-size: 0.78rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.4px; }
+    .field label { font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
     .field input, .field select {
       padding: 8px 11px;
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--line-strong);
       border-radius: 7px;
       font-size: 0.88rem;
       outline: none;
       transition: border-color 0.2s;
-      background: white;
+      background: #0a1020;
+      color: var(--text);
     }
     .field input:focus, .field select:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+      border-color: rgba(56, 189, 248, 0.72);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.14);
     }
 
     .form-grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; }
@@ -336,7 +417,8 @@
     }
     .confirm-overlay.open { display: flex; }
     .confirm-box {
-      background: white;
+      background: var(--panel);
+      border: 1px solid var(--line);
       border-radius: 12px;
       padding: 28px 32px;
       max-width: 360px;
@@ -344,16 +426,205 @@
       text-align: center;
       box-shadow: 0 10px 40px rgba(0,0,0,0.2);
     }
-    .confirm-box h3 { font-size: 1.1rem; margin-bottom: 8px; color: #111827; }
-    .confirm-box p { color: #6b7280; font-size: 0.9rem; margin-bottom: 22px; }
+    .confirm-box h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text); }
+    .confirm-box p { color: var(--muted); font-size: 0.9rem; margin-bottom: 22px; }
     .confirm-btns { display: flex; gap: 10px; justify-content: center; }
 
+    /* Detail drawer */
+    .drawer-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: rgba(2, 6, 23, 0.56);
+      justify-content: flex-end;
+    }
+    .drawer-overlay.open { display: flex; }
+    .client-drawer {
+      width: min(560px, 100%);
+      height: 100vh;
+      max-height: 100vh;
+      background: linear-gradient(180deg, #121c2e, #0e1625);
+      border-left: 1px solid var(--line-strong);
+      box-shadow: -28px 0 80px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      animation: drawerIn 0.18s ease-out;
+    }
+    #clientDrawerContent {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+    }
+    @keyframes drawerIn {
+      from { transform: translateX(26px); opacity: 0.6; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .drawer-head {
+      padding: 24px 26px 18px;
+      border-bottom: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .drawer-eyebrow {
+      color: var(--accent);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .drawer-title {
+      font-size: 1.42rem;
+      line-height: 1.2;
+      font-weight: 850;
+      letter-spacing: 0;
+      color: var(--text);
+    }
+    .drawer-subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 8px;
+      line-height: 1.45;
+    }
+    .drawer-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 16px;
+    }
+    .drawer-body {
+      overflow-y: auto;
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding: 20px 26px 24px;
+      flex: 1;
+    }
+    .detail-section {
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .detail-section:first-child { padding-top: 0; }
+    .detail-section h3 {
+      font-size: 0.74rem;
+      color: var(--muted);
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .detail-item {
+      background: rgba(8, 13, 23, 0.54);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 12px;
+      min-width: 0;
+    }
+    .detail-item.full { grid-column: 1 / -1; }
+    .detail-label {
+      color: var(--faint);
+      font-size: 0.68rem;
+      font-weight: 750;
+      letter-spacing: 0.55px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .detail-value {
+      color: var(--text);
+      font-size: 0.92rem;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+    .drawer-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: rgba(8, 13, 23, 0.54);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 12px;
+      min-width: 0;
+    }
+    .drawer-field.full { grid-column: 1 / -1; }
+    .drawer-field-group {
+      display: grid;
+      gap: 10px;
+      min-width: 0;
+    }
+    .drawer-field span {
+      color: var(--faint);
+      font-size: 0.68rem;
+      font-weight: 750;
+      letter-spacing: 0.55px;
+      text-transform: uppercase;
+    }
+    .drawer-field input,
+    .drawer-field select {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: #0a1020;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .drawer-field input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+    .drawer-field input:focus,
+    .drawer-field select:focus {
+      border-color: rgba(56, 189, 248, 0.72);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.14);
+    }
+    .drawer-field select.badge-select {
+      font-weight: 800;
+      border-color: rgba(148, 163, 184, 0.26);
+      background: rgba(148, 163, 184, 0.14);
+      color: #cbd5e1;
+    }
+    .drawer-field select.badge-select.badge-O { background: rgba(34, 197, 94, 0.15); color: #86efac; border-color: rgba(34, 197, 94, 0.32); }
+    .drawer-field select.badge-select.badge-2nd { background: rgba(59, 130, 246, 0.16); color: #93c5fd; border-color: rgba(59, 130, 246, 0.34); }
+    .drawer-field select.badge-select.badge-IP { background: rgba(245, 158, 11, 0.16); color: #fcd34d; border-color: rgba(245, 158, 11, 0.34); }
+    .drawer-field select.badge-select.badge-P { background: rgba(20, 184, 166, 0.16); color: #5eead4; border-color: rgba(20, 184, 166, 0.34); }
+    .drawer-field select.badge-select.badge-R { background: rgba(244, 63, 94, 0.16); color: #fda4af; border-color: rgba(244, 63, 94, 0.34); }
+    .drawer-field select.badge-select.badge-fha { background: rgba(59, 130, 246, 0.16); color: #93c5fd; border-color: rgba(59, 130, 246, 0.32); }
+    .drawer-field select.badge-select.badge-va { background: rgba(34, 197, 94, 0.15); color: #86efac; border-color: rgba(34, 197, 94, 0.32); }
+    .drawer-field select.badge-select.badge-conv { background: rgba(139, 92, 246, 0.16); color: #c4b5fd; border-color: rgba(139, 92, 246, 0.32); }
+    .drawer-field select.badge-select.badge-usda { background: rgba(245, 158, 11, 0.16); color: #fcd34d; border-color: rgba(245, 158, 11, 0.32); }
+    .drawer-field select.badge-select.badge-jumbo { background: rgba(239, 68, 68, 0.16); color: #fca5a5; border-color: rgba(239, 68, 68, 0.32); }
+    .drawer-field select.badge-select.badge-other { background: rgba(148, 163, 184, 0.14); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.26); }
+    .drawer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 16px 26px 22px;
+      border-top: 1px solid var(--line);
+      background: rgba(8, 13, 23, 0.72);
+      flex-shrink: 0;
+    }
+    .drawer-actions .btn { flex: 1 1 120px; }
+    .drawer-actions .btn-danger { padding: 10px 18px; font-size: 0.9rem; }
+
     @media (max-width: 640px) {
+      .stats { grid-template-columns: 1fr; }
       .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
       .market-panel { grid-template-columns: 1fr; }
       .form-grid .full { grid-column: 1; }
-      header { padding: 14px 16px; }
+      header { padding: 10px 16px; }
+      .brand-logo { height: 50px; max-width: 68vw; }
+      header span { display: none; }
       .container { padding: 16px; }
+      .detail-grid { grid-template-columns: 1fr; }
+      .drawer-field-group { gap: 10px; }
+      .drawer-actions { flex-direction: column; }
     }
   </style>
 </head>
@@ -388,27 +659,24 @@
 <div class="sync-banner" id="syncBanner"></div>
 
 <header>
-  <h1>IRMAE CRM</h1>
+  <img class="brand-logo" src="assets/irmae-crm-logo.png" alt="IRMAE CRM" />
   <span id="header-date"></span>
 </header>
 
 <div class="container">
 
-  <div class="backup-banner" id="backupBanner">
-    <span id="backupBannerMsg"></span>
-    <div class="banner-actions">
-      <button class="btn btn-banner-backup" onclick="exportData()">Export Backup</button>
-      <button class="btn btn-banner-dismiss" onclick="dismissBackupReminder()">Dismiss</button>
-    </div>
-  </div>
-
   <div class="topbar">
     <input class="search-input" type="text" id="searchInput" placeholder="Search by borrower, address, city, referral partner, program…" oninput="renderTable()" />
     <button class="btn btn-primary" onclick="openModal()">+ Add Client</button>
-    <button class="btn btn-import" onclick="document.getElementById('importFile').click()">Import Clients</button>
-    <button class="btn btn-export" onclick="exportData()">Export Backup</button>
-    <span id="currentUserEmail" style="font-size:0.82rem;color:#475569;font-weight:600"></span>
-    <button class="btn btn-logout" onclick="logout()">Sign Out</button>
+    <span id="currentUserEmail" style="font-size:0.82rem;color:#93a4b8;font-weight:600"></span>
+    <div class="utility-menu">
+      <button class="btn menu-trigger" id="actionMenuButton" onclick="toggleActionMenu(event)" aria-label="Client menu" aria-expanded="false">☰</button>
+      <div class="action-menu" id="actionMenu">
+        <button class="menu-item" onclick="importClientsFromMenu()">Import Clients</button>
+        <button class="menu-item" onclick="exportClientsFromMenu()">Export Clients</button>
+        <button class="menu-item danger" onclick="signOutFromMenu()">Sign Out</button>
+      </div>
+    </div>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
   </div>
 
@@ -431,7 +699,7 @@
       <div class="rate-label">National 15-Yr Fixed</div>
       <div class="rate-note" id="rate15Note">Loading market rate...</div>
     </div>
-    <div class="market-card watch">
+    <div class="market-card watch" id="refiWatchCard" onclick="toggleRefiFilter()" role="button" tabindex="0">
       <div class="rate-value" id="refiWatchCount">0</div>
       <div class="rate-label">Refi Watch</div>
       <div class="rate-note" id="refiWatchNote">Loans at least 0.75% above current 30-yr rate.</div>
@@ -442,17 +710,12 @@
     <table>
       <thead>
         <tr>
-          <th>Type</th>
-          <th>P/R</th>
-          <th>Borrower(s)</th>
+          <th>Client</th>
           <th>Address</th>
-          <th>Sales Price</th>
-          <th>Loan Amt</th>
-          <th>Closing</th>
+          <th>Loan</th>
           <th>Rate</th>
-          <th>Program</th>
-          <th>Referral Partner</th>
-          <th>Actions</th>
+          <th>Status</th>
+          <th></th>
         </tr>
       </thead>
       <tbody id="clientTableBody"></tbody>
@@ -462,6 +725,13 @@
       <p>No clients yet. Click <strong>+ Add Client</strong> to get started.</p>
     </div>
   </div>
+</div>
+
+<!-- Client Detail Drawer -->
+<div class="drawer-overlay" id="clientDrawerOverlay">
+  <aside class="client-drawer" aria-label="Client details">
+    <div id="clientDrawerContent"></div>
+  </aside>
 </div>
 
 <!-- Add / Edit Modal -->
@@ -528,7 +798,7 @@
         <select id="f-proptype">
           <option value="">— Select —</option>
           <option value="O">O — Owner Occupied</option>
-          <option value="2nd">2nd — 2nd Mortgage</option>
+          <option value="2nd">2nd — Second Home</option>
           <option value="IP">IP — Investment Property</option>
         </select>
       </div>
@@ -696,6 +966,8 @@
   let clients = [];
   let editingId = null;
   let deletingId = null;
+  let selectedClientId = null;
+  let showRefiOnly = false;
   let db = null;
   let auth = null;
   let currentUser = null;
@@ -815,7 +1087,6 @@
         : [];
       hideBanner();
       renderTable();
-      checkBackupReminder();
     }, err => {
       showBanner('Firebase error: ' + err.message + '. Check Auth and Database Rules.', true);
     });
@@ -889,24 +1160,336 @@
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
+  function borrowerName(c, n) {
+    return [c['borrower' + n + 'first'], c['borrower' + n + 'last']].filter(Boolean).join(' ');
+  }
+
+  function allBorrowers(c) {
+    return [1,2,3,4].map(n => borrowerName(c, n)).filter(Boolean);
+  }
+
+  function primaryBorrower(c) {
+    return borrowerName(c, 1) || allBorrowers(c)[0] || 'Unnamed Client';
+  }
+
+  function fullAddress(c) {
+    const cityLine = [c.city, c.state, c.zip].filter(Boolean).join(', ');
+    return [c.address, cityLine].filter(Boolean).join(', ');
+  }
+
+  function propertyLabel(v) {
+    const map = { 'O': 'Owner Occupied', '2nd': 'Second Home', 'IP': 'Investment' };
+    return map[v] || v || 'Unspecified';
+  }
+
+  function prLabel(v) {
+    const map = { 'P': 'Purchase', 'R': 'Refinance' };
+    return map[v] || v || 'Unspecified';
+  }
+
   function propBadge(v) {
     if (!v) return '—';
-    const map = { 'O':'badge-O O', '2nd':'badge-2nd 2nd', 'IP':'badge-IP IP' };
+    const map = { 'O':'badge-O', '2nd':'badge-2nd', 'IP':'badge-IP' };
     const cls = map[v] || 'badge-other';
-    return `<span class="badge ${cls}">${esc(v)}</span>`;
+    return `<span class="badge ${cls}">${esc(propertyLabel(v))}</span>`;
   }
 
   function prBadge(v) {
     if (!v) return '—';
-    const map = { 'P':'badge-P P', 'R':'badge-R R' };
+    const map = { 'P':'badge-P', 'R':'badge-R' };
     const cls = map[v] || 'badge-other';
-    return `<span class="badge ${cls}">${esc(v)}</span>`;
+    return `<span class="badge ${cls}">${esc(prLabel(v))}</span>`;
   }
 
   function programBadge(p) {
     if (!p) return '—';
     const map = { 'FHA':'badge-fha', 'VA':'badge-va', 'Conventional':'badge-conv', 'USDA':'badge-usda', 'Jumbo':'badge-jumbo', 'Other':'badge-other' };
     return `<span class="badge ${map[p] || 'badge-other'}">${esc(p)}</span>`;
+  }
+
+  function badgeSelectClass(field, value) {
+    const maps = {
+      proptype: { 'O': 'badge-O', '2nd': 'badge-2nd', 'IP': 'badge-IP' },
+      pr: { 'P': 'badge-P', 'R': 'badge-R' },
+      program: { 'FHA': 'badge-fha', 'VA': 'badge-va', 'Conventional': 'badge-conv', 'USDA': 'badge-usda', 'Jumbo': 'badge-jumbo', 'Other': 'badge-other' }
+    };
+    return maps[field]?.[value] || 'badge-other';
+  }
+
+  function detailItem(label, value, full = false) {
+    return `
+      <div class="detail-item${full ? ' full' : ''}">
+        <div class="detail-label">${esc(label)}</div>
+        <div class="detail-value">${value || '—'}</div>
+      </div>`;
+  }
+
+  function drawerSelectField(label, field, value, options, full = false, colorCoded = false) {
+    const optionHtml = options.map(opt => {
+      const selected = String(value || '') === opt.value ? ' selected' : '';
+      return `<option value="${esc(opt.value)}"${selected}>${esc(opt.label)}</option>`;
+    }).join('');
+    const selectClass = colorCoded ? ` class="badge-select ${badgeSelectClass(field, value || '')}" data-badge-field="${esc(field)}"` : '';
+    return `
+      <label class="drawer-field${full ? ' full' : ''}">
+        <span>${esc(label)}</span>
+        <select id="drawer-${field}"${selectClass}>${optionHtml}</select>
+      </label>`;
+  }
+
+  function drawerInputField(label, field, value, type = 'text', attrs = '', full = false) {
+    return `
+      <label class="drawer-field${full ? ' full' : ''}">
+        <span>${esc(label)}</span>
+        <input id="drawer-${field}" type="${esc(type)}" value="${esc(value)}" ${attrs} />
+      </label>`;
+  }
+
+  function drawerCheckboxField(label, field, checked = false) {
+    return `
+      <label class="drawer-field">
+        <span>${esc(label)}</span>
+        <input id="drawer-${field}" type="checkbox" ${checked ? 'checked' : ''} />
+      </label>`;
+  }
+
+  function drawerValue(field) {
+    return (document.getElementById('drawer-' + field)?.value || '').trim();
+  }
+
+  function drawerChecked(field) {
+    return !!document.getElementById('drawer-' + field)?.checked;
+  }
+
+  async function saveDrawerEdits() {
+    if (!selectedClientId) return;
+    if (!db || !currentUser) { alert('Please sign in first.'); return; }
+
+    const existing = clients.find(c => c.id === selectedClientId);
+    if (!existing) return;
+
+    const updates = {
+      borrower1first: drawerValue('borrower1first'),
+      borrower1last: drawerValue('borrower1last'),
+      borrower2first: drawerValue('borrower2first'),
+      borrower2last: drawerValue('borrower2last'),
+      borrower3first: drawerValue('borrower3first'),
+      borrower3last: drawerValue('borrower3last'),
+      borrower4first: drawerValue('borrower4first'),
+      borrower4last: drawerValue('borrower4last'),
+      cosigner2: drawerChecked('cosigner2'),
+      cosigner3: drawerChecked('cosigner3'),
+      cosigner4: drawerChecked('cosigner4'),
+      address: drawerValue('address'),
+      city: drawerValue('city'),
+      state: drawerValue('state'),
+      zip: drawerValue('zip'),
+      proptype: drawerValue('proptype'),
+      pr: drawerValue('pr'),
+      program: drawerValue('program'),
+      salesprice: drawerValue('salesprice'),
+      loanamt: drawerValue('loanamt'),
+      rate: drawerValue('rate'),
+      closing: drawerValue('closing'),
+      cell1: drawerValue('cell1'),
+      email1: drawerValue('email1'),
+      birthday1: drawerValue('birthday1'),
+      cell2: drawerValue('cell2'),
+      email2: drawerValue('email2'),
+      birthday2: drawerValue('birthday2'),
+      referral: drawerValue('referral'),
+      updatedAt: Date.now()
+    };
+
+    try {
+      await db.ref(CLIENTS_PATH + '/' + selectedClientId).set({
+        ...existing,
+        ...updates
+      });
+      Object.assign(existing, updates);
+      renderTable();
+      renderClientDrawer();
+      showBanner('Client details saved.');
+      setTimeout(hideBanner, 1800);
+    } catch (err) {
+      alert('Could not save drawer changes. Please try again.');
+      console.error(err);
+    }
+  }
+
+  function borrowerContact(c, n) {
+    const name = borrowerName(c, n);
+    if (!name) return '';
+    const cosigner = c['cosigner' + n] ? ' <span class="badge badge-cosigner">Co-Signer</span>' : '';
+    const pieces = [
+      esc(name) + cosigner,
+      c['cell' + n] ? esc(c['cell' + n]) : '',
+      c['email' + n] ? esc(c['email' + n]) : '',
+      c['birthday' + n] ? 'Birthday ' + esc(fmtShortDate(c['birthday' + n])) : ''
+    ].filter(Boolean);
+    return pieces.join('<br>');
+  }
+
+  function openClientDrawer(id) {
+    selectedClientId = id;
+    renderClientDrawer();
+    renderTable();
+    document.getElementById('clientDrawerOverlay').classList.add('open');
+  }
+
+  function closeClientDrawer() {
+    document.getElementById('clientDrawerOverlay').classList.remove('open');
+    selectedClientId = null;
+    renderTable();
+  }
+
+  function editSelectedClient() {
+    if (!selectedClientId) return;
+    const id = selectedClientId;
+    closeClientDrawer();
+    openModal(id);
+  }
+
+  function deleteSelectedClient() {
+    if (!selectedClientId) return;
+    const id = selectedClientId;
+    closeClientDrawer();
+    askDelete(id);
+  }
+
+  function toggleRefiFilter() {
+    showRefiOnly = !showRefiOnly;
+    renderTable();
+  }
+
+  function renderClientDrawer() {
+    const c = clients.find(x => x.id === selectedClientId);
+    const content = document.getElementById('clientDrawerContent');
+    if (!c) {
+      content.innerHTML = '';
+      return;
+    }
+
+    const badges = [
+      propBadge(c.proptype),
+      prBadge(c.pr),
+      programBadge(c.program),
+      shouldFlagRefi(c) ? `<span class="badge refi-badge">Refi Watch</span>` : ''
+    ].filter(x => x && x !== '—').join('');
+    const propertyOptions = [
+      { value: '', label: 'Select property type' },
+      { value: 'O', label: 'Owner Occupied' },
+      { value: 'IP', label: 'Investment' },
+      { value: '2nd', label: 'Second Home' }
+    ];
+    const loanOptions = [
+      { value: '', label: 'Select loan type' },
+      { value: 'P', label: 'Purchase' },
+      { value: 'R', label: 'Refinance' }
+    ];
+    const programOptions = [
+      { value: '', label: 'Select program' },
+      { value: 'Conventional', label: 'Conventional' },
+      { value: 'FHA', label: 'FHA' },
+      { value: 'VA', label: 'VA' },
+      { value: 'USDA', label: 'USDA' },
+      { value: 'Jumbo', label: 'Jumbo' },
+      { value: 'Other', label: 'Other' }
+    ];
+
+    content.innerHTML = `
+      <div class="drawer-head">
+        <div class="drawer-eyebrow">${esc(prLabel(c.pr))} Record</div>
+        <div class="drawer-title">${esc(primaryBorrower(c))}</div>
+        <div class="drawer-subtitle">${esc(fullAddress(c)) || 'No property address on file'}</div>
+        <div class="drawer-badges">${badges}</div>
+      </div>
+      <div class="drawer-body">
+        <div class="detail-section">
+          <h3>Borrowers</h3>
+          <div class="detail-grid">
+            <div class="drawer-field-group">
+              ${drawerInputField('Borrower 1 First', 'borrower1first', c.borrower1first)}
+              ${drawerInputField('Borrower 1 Last', 'borrower1last', c.borrower1last)}
+            </div>
+            <div class="drawer-field-group">
+              ${drawerInputField('Borrower 2 First', 'borrower2first', c.borrower2first)}
+              ${drawerInputField('Borrower 2 Last', 'borrower2last', c.borrower2last)}
+              ${drawerCheckboxField('Borrower 2 Co-Signer', 'cosigner2', c.cosigner2)}
+            </div>
+            <div class="drawer-field-group">
+              ${drawerInputField('Borrower 3 First', 'borrower3first', c.borrower3first)}
+              ${drawerInputField('Borrower 3 Last', 'borrower3last', c.borrower3last)}
+              ${drawerCheckboxField('Borrower 3 Co-Signer', 'cosigner3', c.cosigner3)}
+            </div>
+            <div class="drawer-field-group">
+              ${drawerInputField('Borrower 4 First', 'borrower4first', c.borrower4first)}
+              ${drawerInputField('Borrower 4 Last', 'borrower4last', c.borrower4last)}
+              ${drawerCheckboxField('Borrower 4 Co-Signer', 'cosigner4', c.cosigner4)}
+            </div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <h3>Property</h3>
+          <div class="detail-grid">
+            ${drawerInputField('Street Address', 'address', c.address, 'text', '', true)}
+            ${drawerInputField('City', 'city', c.city)}
+            ${drawerInputField('State', 'state', c.state, 'text', 'maxlength="2"')}
+            ${drawerInputField('Zip', 'zip', c.zip, 'text', 'maxlength="10"')}
+            ${drawerSelectField('Property Type', 'proptype', c.proptype, propertyOptions, false, true)}
+          </div>
+        </div>
+        <div class="detail-section">
+          <h3>Loan Details</h3>
+          <div class="detail-grid">
+            ${drawerSelectField('Loan Type', 'pr', c.pr, loanOptions, false, true)}
+            ${drawerSelectField('Program', 'program', c.program, programOptions, false, true)}
+            ${drawerInputField('Sales Price', 'salesprice', c.salesprice, 'number', 'min="0" step="1" inputmode="numeric"')}
+            ${drawerInputField('Loan Amount', 'loanamt', c.loanamt, 'number', 'min="0" step="1" inputmode="numeric"')}
+            ${drawerInputField('Interest Rate (%)', 'rate', c.rate, 'number', 'min="0" max="30" step="0.001" inputmode="decimal"')}
+            ${drawerInputField('Closing', 'closing', c.closing, 'date')}
+          </div>
+        </div>
+        <div class="detail-section">
+          <h3>Contact Info</h3>
+          <div class="detail-grid">
+            <div class="drawer-field-group">
+              ${drawerInputField('Borrower 1 Cell', 'cell1', c.cell1, 'tel')}
+              ${drawerInputField('Borrower 1 Email', 'email1', c.email1, 'email')}
+              ${drawerInputField('Borrower 1 Birthday', 'birthday1', c.birthday1, 'date')}
+            </div>
+            <div class="drawer-field-group">
+              ${drawerInputField('Borrower 2 Cell', 'cell2', c.cell2, 'tel')}
+              ${drawerInputField('Borrower 2 Email', 'email2', c.email2, 'email')}
+              ${drawerInputField('Borrower 2 Birthday', 'birthday2', c.birthday2, 'date')}
+            </div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <h3>Referral Source</h3>
+          <div class="detail-grid">
+            ${drawerInputField('Referral Partner', 'referral', c.referral, 'text', 'list="referral-list" autocomplete="off"', true)}
+          </div>
+        </div>
+      </div>
+      <div class="drawer-actions">
+        <button class="btn btn-success" onclick="saveDrawerEdits()">Save Changes</button>
+        <button class="btn btn-primary" onclick="editSelectedClient()">Full Edit</button>
+        <button class="btn btn-danger" onclick="deleteSelectedClient()">Delete Client</button>
+        <button class="btn btn-cancel" onclick="closeClientDrawer()">Close</button>
+      </div>`;
+    initDrawerBadgeSelects();
+  }
+
+  function initDrawerBadgeSelects() {
+    document.querySelectorAll('.drawer-field select.badge-select').forEach(sel => {
+      const field = sel.dataset.badgeField;
+      const updateClass = () => {
+        sel.className = 'badge-select ' + badgeSelectClass(field, sel.value);
+      };
+      sel.addEventListener('change', updateClass);
+      updateClass();
+    });
   }
 
   // ── Render ───────────────────────────────────────────────
@@ -922,7 +1505,7 @@
       return b.closing.localeCompare(a.closing);
     });
 
-    const filtered = q ? sorted.filter(c =>
+    const searchFiltered = q ? sorted.filter(c =>
       (c.borrower1first || '').toLowerCase().includes(q) ||
       (c.borrower1last  || '').toLowerCase().includes(q) ||
       (c.borrower2first || '').toLowerCase().includes(q) ||
@@ -942,46 +1525,54 @@
       (c.cell2          || '').toLowerCase().includes(q)
     ) : sorted;
 
+    const filtered = showRefiOnly ? searchFiltered.filter(shouldFlagRefi) : searchFiltered;
+
     body.innerHTML = '';
 
     if (filtered.length === 0) {
+      empty.innerHTML = clients.length
+        ? `<div class="icon">∅</div><p>No records match the current view.</p>`
+        : `<div class="icon">📋</div><p>No clients yet. Click <strong>+ Add Client</strong> to get started.</p>`;
       empty.style.display = 'block';
     } else {
       empty.style.display = 'none';
       filtered.forEach(c => {
         const tr = document.createElement('tr');
-        const addrLine = [c.address, c.city, c.state].filter(Boolean).join(', ');
-        const b1 = [c.borrower1first, c.borrower1last].filter(Boolean).join(' ');
-        const b2 = [c.borrower2first, c.borrower2last].filter(Boolean).join(' ');
-        const b3 = [c.borrower3first, c.borrower3last].filter(Boolean).join(' ');
-        const b4 = [c.borrower4first, c.borrower4last].filter(Boolean).join(' ');
-        const coTag = `<span class="badge badge-cosigner" style="font-size:0.68rem;padding:1px 6px;margin-left:5px">Co-Signer</span>`;
+        tr.className = selectedClientId === c.id ? 'selected' : '';
+        tr.tabIndex = 0;
+        tr.setAttribute('role', 'button');
+        tr.addEventListener('click', () => openClientDrawer(c.id));
+        tr.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openClientDrawer(c.id);
+          }
+        });
+        const borrowers = allBorrowers(c);
+        const secondaryBorrowers = borrowers.slice(1);
+        const address = fullAddress(c);
+        const loanLine = [prLabel(c.pr), c.program].filter(Boolean).join(' / ');
         const refiTag = shouldFlagRefi(c) ? `<span class="badge refi-badge" title="Client rate is at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above the current 30-year national average">Refi Watch</span>` : '';
+        const statusBadges = [propBadge(c.proptype), prBadge(c.pr), refiTag].filter(x => x && x !== '—').join('');
         tr.innerHTML = `
-          <td>${propBadge(c.proptype)}</td>
-          <td>${prBadge(c.pr)}</td>
           <td>
-            <div class="primary">${esc(b1) || '—'}</div>
-            ${b2 ? `<div class="sub">${esc(b2)}${c.cosigner2 ? coTag : ''}</div>` : ''}
-            ${b3 ? `<div class="sub">${esc(b3)}${c.cosigner3 ? coTag : ''}</div>` : ''}
-            ${b4 ? `<div class="sub">${esc(b4)}${c.cosigner4 ? coTag : ''}</div>` : ''}
+            <div class="primary">${esc(primaryBorrower(c))}</div>
+            ${secondaryBorrowers.length ? `<div class="sub">${esc(secondaryBorrowers.join(' / '))}</div>` : ''}
           </td>
           <td>
-            <div>${esc(addrLine) || '—'}</div>
-            ${c.zip ? `<div class="sub">${esc(c.zip)}</div>` : ''}
+            <div>${esc(address) || '—'}</div>
+            ${c.referral ? `<div class="sub">${esc(c.referral)}</div>` : ''}
           </td>
-          <td>${fmt$(c.salesprice)}</td>
-          <td>${fmt$(c.loanamt)}</td>
-          <td>${fmtDate(c.closing)}</td>
-          <td>${fmtRate(c.rate)}${refiTag}</td>
-          <td>${programBadge(c.program)}</td>
-          <td>${esc(c.referral) || '—'}</td>
           <td>
-            <div class="actions">
-              <button class="btn btn-edit" onclick="editClient('${c.id}')">Edit</button>
-              <button class="btn btn-danger" onclick="askDelete('${c.id}')">Delete</button>
-            </div>
-          </td>`;
+            <div class="table-loan">${programBadge(c.program)}</div>
+            <div class="sub">${esc(loanLine) || 'Loan'} · ${fmt$(c.loanamt)}</div>
+          </td>
+          <td>
+            <div class="primary">${fmtRate(c.rate)}</div>
+            <div class="sub">${fmtDate(c.closing)}</div>
+          </td>
+          <td><div class="status-stack">${statusBadges || '<span class="badge badge-other">Needs Info</span>'}</div></td>
+          <td class="row-arrow">›</td>`;
         body.appendChild(tr);
       });
     }
@@ -1005,9 +1596,14 @@
 
     const refiWatch = clients.filter(shouldFlagRefi).length;
     document.getElementById('refiWatchCount').textContent = refiWatch;
+    document.getElementById('refiWatchCard').classList.toggle('active', showRefiOnly);
     document.getElementById('refiWatchNote').textContent = marketRates?.thirtyYear?.rate
-      ? `Loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above ${marketRates.thirtyYear.rate.toFixed(2)}%.`
-      : `Loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above current 30-yr rate.`;
+      ? (showRefiOnly
+        ? `Filtered to loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above ${marketRates.thirtyYear.rate.toFixed(2)}%.`
+        : `Loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above ${marketRates.thirtyYear.rate.toFixed(2)}%.`)
+      : (showRefiOnly
+        ? `Filtered to loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above current 30-yr rate.`
+        : `Loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above current 30-yr rate.`);
   }
 
   // ── Modal ────────────────────────────────────────────────
@@ -1118,16 +1714,14 @@
 
   // ── Export / Import ──────────────────────────────────────
   function exportData() {
-    if (clients.length === 0) { alert('No clients to back up yet.'); return; }
+    if (clients.length === 0) { alert('No clients to export yet.'); return; }
     const blob = new Blob([JSON.stringify(clients, null, 2)], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = `dbbackup_${new Date().toISOString().slice(0,10)}.json`;
+    a.download = `irmae_clients_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    localStorage.setItem('loan_crm_last_backup', Date.now());
-    dismissBackupReminder();
   }
 
   function importData(event) {
@@ -1161,31 +1755,43 @@
         db.ref().update(updates)
           .then(() => alert(`Import complete. ${added} client(s) added, ${updated} updated.`))
           .catch(err => {
-            alert('Could not import backup. Please try again.');
+            alert('Could not import clients. Please try again.');
             console.error(err);
           });
       } catch {
-        alert('Could not read file. Make sure it is a valid CRM backup (.json).');
+        alert('Could not read file. Make sure it is a valid CRM client export (.json).');
       }
     };
     reader.readAsText(file);
     event.target.value = '';
   }
 
-  // ── Backup Reminder ──────────────────────────────────────
-  function checkBackupReminder() {
-    if (clients.length === 0) return;
-    const last = parseInt(localStorage.getItem('loan_crm_last_backup') || '0', 10);
-    const days = (Date.now() - last) / (1000 * 60 * 60 * 24);
-    if (days >= 30) {
-      document.getElementById('backupBannerMsg').textContent = last
-        ? 'You haven\'t exported a backup in over 30 days. Click Export Backup to download a copy of your client data.'
-        : 'You haven\'t exported a backup yet. Click Export Backup to download a copy of your client data.';
-      document.getElementById('backupBanner').style.display = 'flex';
-    }
+  function toggleActionMenu(event) {
+    event?.stopPropagation();
+    const menu = document.getElementById('actionMenu');
+    const button = document.getElementById('actionMenuButton');
+    const isOpen = menu.classList.toggle('open');
+    button.setAttribute('aria-expanded', String(isOpen));
   }
-  function dismissBackupReminder() {
-    document.getElementById('backupBanner').style.display = 'none';
+
+  function closeActionMenu() {
+    document.getElementById('actionMenu').classList.remove('open');
+    document.getElementById('actionMenuButton').setAttribute('aria-expanded', 'false');
+  }
+
+  function importClientsFromMenu() {
+    closeActionMenu();
+    document.getElementById('importFile').click();
+  }
+
+  function exportClientsFromMenu() {
+    closeActionMenu();
+    exportData();
+  }
+
+  function signOutFromMenu() {
+    closeActionMenu();
+    logout();
   }
 
   // ── Overlay / keyboard ───────────────────────────────────
@@ -1195,8 +1801,20 @@
   document.getElementById('confirmOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeConfirm();
   });
+  document.getElementById('clientDrawerOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeClientDrawer();
+  });
+  document.getElementById('refiWatchCard').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleRefiFilter();
+    }
+  });
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.utility-menu')) closeActionMenu();
+  });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeModal(); closeConfirm(); }
+    if (e.key === 'Escape') { closeModal(); closeConfirm(); closeClientDrawer(); closeActionMenu(); }
   });
 
   // ── Short-display selects ────────────────────────────────
