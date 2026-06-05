@@ -265,16 +265,16 @@
     /* Stats */
     .stats {
       display: grid;
-      grid-template-columns: repeat(6, minmax(150px, 1fr));
-      gap: 16px;
-      margin-bottom: 20px;
+      grid-template-columns: repeat(6, minmax(136px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
     }
     .stat-card {
       background: linear-gradient(180deg, rgba(18, 28, 46, 0.95), rgba(15, 23, 38, 0.9));
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 18px 20px;
-      box-shadow: 0 16px 44px rgba(0,0,0,0.18);
+      padding: 14px 16px;
+      box-shadow: 0 12px 34px rgba(0,0,0,0.16);
       min-width: 0;
       text-align: left;
       position: relative;
@@ -287,8 +287,8 @@
       width: 3px;
       background: linear-gradient(#38bdf8, #22c55e);
     }
-    .stat-card .num { font-size: 2rem; font-weight: 800; color: var(--text); letter-spacing: 0; }
-    .stat-card .lbl { font-size: 0.72rem; color: var(--muted); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.7px; }
+    .stat-card .num { font-size: 1.66rem; font-weight: 800; color: var(--text); letter-spacing: 0; }
+    .stat-card .lbl { font-size: 0.68rem; color: var(--muted); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.7px; }
     .stat-card.actionable {
       cursor: pointer;
       transition: transform 0.14s, border-color 0.14s, background 0.14s;
@@ -301,21 +301,21 @@
     }
     .stat-card.referral-stat::before { background: linear-gradient(#f59e0b, #38bdf8); }
     .stat-card.referral-stat .lbl {
-      margin: 0 0 8px;
+      margin: 0 0 6px;
       color: #cbd5e1;
     }
     .stat-card.referral-stat .num {
-      font-size: 1.12rem;
+      font-size: 1rem;
       line-height: 1.18;
       overflow-wrap: anywhere;
     }
     .metric-detail {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px 10px;
-      margin-top: 11px;
+      gap: 5px 8px;
+      margin-top: 9px;
       color: var(--muted);
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       font-weight: 700;
     }
     .metric-detail strong { color: #fcd34d; font-weight: 850; }
@@ -805,7 +805,7 @@
     @media (max-width: 1180px) {
       .stats,
       .referral-preview-list,
-      .partner-summary-grid { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+      .partner-summary-grid { grid-template-columns: repeat(3, minmax(145px, 1fr)); }
     }
 
     @media (max-width: 640px) {
