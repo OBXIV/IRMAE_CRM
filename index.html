@@ -7,6 +7,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -885,7 +886,7 @@
         <button class="menu-item danger" onclick="signOutFromMenu()">Sign Out</button>
       </div>
     </div>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+    <input type="file" id="importFile" accept=".json,.xlsx,.xls,.csv" style="display:none" onchange="importData(event)" />
   </div>
 
   <div class="stats">
@@ -1580,18 +1581,28 @@
     return `<span class="badge ${cls}">${esc(prLabel(v))}</span>`;
   }
 
+  function programBadgeClass(p) {
+    const text = String(p || '').toLowerCase();
+    if (!text) return 'badge-other';
+    if (text.includes('fha')) return 'badge-fha';
+    if (text.includes('va')) return 'badge-va';
+    if (text.includes('conv') || text.includes('conventional')) return 'badge-conv';
+    if (text.includes('usda')) return 'badge-usda';
+    if (text.includes('jumbo')) return 'badge-jumbo';
+    return 'badge-other';
+  }
+
   function programBadge(p) {
     if (!p) return '—';
-    const map = { 'FHA':'badge-fha', 'VA':'badge-va', 'Conventional':'badge-conv', 'USDA':'badge-usda', 'Jumbo':'badge-jumbo', 'Other':'badge-other' };
-    return `<span class="badge ${map[p] || 'badge-other'}">${esc(p)}</span>`;
+    return `<span class="badge ${programBadgeClass(p)}">${esc(p)}</span>`;
   }
 
   function badgeSelectClass(field, value) {
     const maps = {
       proptype: { 'O': 'badge-O', '2nd': 'badge-2nd', 'IP': 'badge-IP' },
-      pr: { 'P': 'badge-P', 'R': 'badge-R' },
-      program: { 'FHA': 'badge-fha', 'VA': 'badge-va', 'Conventional': 'badge-conv', 'USDA': 'badge-usda', 'Jumbo': 'badge-jumbo', 'Other': 'badge-other' }
+      pr: { 'P': 'badge-P', 'R': 'badge-R' }
     };
+    if (field === 'program') return programBadgeClass(value);
     return maps[field]?.[value] || 'badge-other';
   }
 
@@ -1604,7 +1615,11 @@
   }
 
   function drawerSelectField(label, field, value, options, full = false, colorCoded = false) {
-    const optionHtml = options.map(opt => {
+    const current = String(value || '').trim();
+    const choices = current && !options.some(opt => opt.value === current)
+      ? [...options, { value: current, label: current }]
+      : options;
+    const optionHtml = choices.map(opt => {
       const selected = String(value || '') === opt.value ? ' selected' : '';
       return `<option value="${esc(opt.value)}"${selected}>${esc(opt.label)}</option>`;
     }).join('');
@@ -2073,6 +2088,19 @@
                   'borrower3first','borrower3last','borrower4first','borrower4last',
                   'address','city','state','zip','cell1','email1','birthday1','cell2','email2','birthday2'];
 
+  function ensureSelectOption(select, value) {
+    const text = String(value || '').trim();
+    if (!text || Array.from(select.options).some(opt => opt.value === text)) return;
+    select.appendChild(new Option(text, text));
+  }
+
+  function setFormFieldValue(field, value) {
+    const el = document.getElementById('f-' + field);
+    if (!el) return;
+    if (el.tagName === 'SELECT') ensureSelectOption(el, value);
+    el.value = value == null ? '' : value;
+  }
+
   function openModal(id) {
     editingId = id || null;
     document.getElementById('modalTitle').textContent = id ? 'Edit Client' : 'Add New Client';
@@ -2090,7 +2118,7 @@
     if (id) {
       const c = clients.find(x => x.id === id);
       if (c) {
-        FIELDS.forEach(f => { if (c[f] != null) document.getElementById('f-' + f).value = c[f]; });
+        FIELDS.forEach(f => { if (c[f] != null) setFormFieldValue(f, c[f]); });
         if (c.borrower3first || c.borrower3last) { borrowerCount = 3; document.getElementById('borrower3-row').style.display = ''; }
         if (c.borrower4first || c.borrower4last) { borrowerCount = 4; document.getElementById('borrower4-row').style.display = ''; document.getElementById('addBorrowerBtn').style.display = 'none'; }
         document.getElementById('f-cosigner2').checked = !!c.cosigner2;
@@ -2185,45 +2213,499 @@
     URL.revokeObjectURL(url);
   }
 
+  const IMPORT_FIELD_ALIASES = {
+    proptype: ['O/2nd/IP', 'O 2nd IP', 'Occupancy', 'Property Occupancy', 'Property Type', 'Occupancy Type'],
+    pr: ['P/R', 'P R', 'Purchase Refinance', 'Purchase / Refinance', 'Purpose', 'Loan Purpose', 'Transaction Type'],
+    salesprice: ['Price', 'Sales Price', 'Sale Price', 'Purchase Price'],
+    loanamt: ['Loan', 'Loan Amount', 'Loan Amt', 'Mortgage Amount', 'Amount Financed'],
+    closing: ['Closing', 'Closing Date', 'Close Date', 'Settlement Date', 'Funded Date'],
+    rate: ['Rate', 'Interest Rate', 'Note Rate'],
+    program: ['Investor - Program', 'Investor Program', 'Investor / Program', 'Program', 'Loan Program', 'Product'],
+    referral: ['Referral Partner', 'Referral', 'Referral Source', 'Partner', 'Agent', 'Realtor', 'Lead Source'],
+    address: ['Address', 'Street Address', 'Property Address', 'Subject Address'],
+    city: ['City', 'Property City'],
+    state: ['State', 'Property State'],
+    zip: ['Zip', 'ZIP', 'Zip Code', 'Postal Code'],
+    cell1: ['Cell', 'Phone', 'Mobile', 'Borrower Cell', 'Borrower 1 Cell', 'Borrower Phone', 'Borrower 1 Phone'],
+    email1: ['Email', 'Borrower Email', 'Borrower 1 Email'],
+    birthday1: ['Birthday', 'DOB', 'Date of Birth', 'Borrower Birthday', 'Borrower 1 Birthday'],
+    cell2: ['Co-Borrower Cell', 'Borrower 2 Cell', 'CoBorrower Phone', 'Borrower 2 Phone'],
+    email2: ['Co-Borrower Email', 'Borrower 2 Email', 'CoBorrower Email'],
+    birthday2: ['Co-Borrower Birthday', 'Borrower 2 Birthday', 'CoBorrower DOB', 'Borrower 2 DOB']
+  };
+
+  const BORROWER_GENERIC_HEADERS = ['Borrower', 'Borrowers', 'Borrower Name', 'Client', 'Client Name', 'Customer', 'Customer Name', 'Name'];
+  const BORROWER_FULL_ALIASES = [
+    ['Borrower 1', 'Borrower 1 Name', 'Primary Borrower', 'Primary Borrower Name'],
+    ['Borrower 2', 'Borrower 2 Name', 'Co-Borrower', 'Co Borrower', 'CoBorrower', 'Co-Borrower Name'],
+    ['Borrower 3', 'Borrower 3 Name'],
+    ['Borrower 4', 'Borrower 4 Name']
+  ];
+  const BORROWER_FIRST_ALIASES = [
+    ['Borrower 1 First', 'Borrower First', 'Primary First', 'First Name', 'First'],
+    ['Borrower 2 First', 'Co-Borrower First', 'Co Borrower First', 'CoBorrower First'],
+    ['Borrower 3 First'],
+    ['Borrower 4 First']
+  ];
+  const BORROWER_LAST_ALIASES = [
+    ['Borrower 1 Last', 'Borrower Last', 'Primary Last', 'Last Name', 'Last'],
+    ['Borrower 2 Last', 'Co-Borrower Last', 'Co Borrower Last', 'CoBorrower Last'],
+    ['Borrower 3 Last'],
+    ['Borrower 4 Last']
+  ];
+
+  let knownImportHeaderKeyCache = null;
+  function knownImportHeaderKeys() {
+    if (!knownImportHeaderKeyCache) {
+      knownImportHeaderKeyCache = new Set([
+        ...Object.values(IMPORT_FIELD_ALIASES).flat(),
+        ...BORROWER_GENERIC_HEADERS,
+        ...BORROWER_FULL_ALIASES.flat(),
+        ...BORROWER_FIRST_ALIASES.flat(),
+        ...BORROWER_LAST_ALIASES.flat()
+      ].map(normalizeImportHeader));
+    }
+    return knownImportHeaderKeyCache;
+  }
+
+  function normalizeImportHeader(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '');
+  }
+
+  function cleanImportCell(value) {
+    if (value == null) return '';
+    if (value instanceof Date) return formatImportDate(value);
+    const text = String(value).replace(/\s+/g, ' ').trim();
+    return text === 'NaN' ? '' : text;
+  }
+
+  function findImportColumn(headerKeys, aliases) {
+    const aliasKeys = aliases.map(normalizeImportHeader);
+    return headerKeys.findIndex(key => aliasKeys.includes(key));
+  }
+
+  function importValue(row, headerKeys, aliases) {
+    const index = findImportColumn(headerKeys, aliases);
+    return index >= 0 ? cleanImportCell(row[index]) : '';
+  }
+
+  function importValueRaw(row, headerKeys, aliases) {
+    const index = findImportColumn(headerKeys, aliases);
+    return index >= 0 ? row[index] : '';
+  }
+
+  function isBlankImportRow(row) {
+    return !row || row.every(cell => cleanImportCell(cell) === '');
+  }
+
+  function ignoredImportHeaders(headerRow) {
+    const knownKeys = knownImportHeaderKeys();
+    return headerRow
+      .map(cleanImportCell)
+      .filter(Boolean)
+      .filter(header => !knownKeys.has(normalizeImportHeader(header)));
+  }
+
+  function headerImportScore(row) {
+    if (!row || row.length === 0) return 0;
+    const keys = row.map(normalizeImportHeader);
+    let score = 0;
+    const knownKeys = knownImportHeaderKeys();
+    keys.forEach(key => {
+      if (knownKeys.has(key)) score += 1;
+    });
+    return score;
+  }
+
+  function findImportHeaderRow(rows) {
+    let bestIndex = -1;
+    let bestScore = 0;
+    rows.slice(0, 25).forEach((row, index) => {
+      const score = headerImportScore(row);
+      if (score > bestScore) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    });
+    return bestScore >= 4 ? bestIndex : -1;
+  }
+
+  function normalizeImportNumber(value) {
+    const cleaned = cleanImportCell(value).replace(/[$,%\s,]/g, '');
+    if (!cleaned) return '';
+    const num = Number(cleaned);
+    if (Number.isNaN(num)) return cleanImportCell(value);
+    return Number.isInteger(num) ? String(num) : String(num);
+  }
+
+  function normalizeImportRate(value) {
+    const cleaned = cleanImportCell(value).replace(/[%\s,]/g, '');
+    if (!cleaned) return '';
+    const num = Number(cleaned);
+    if (Number.isNaN(num)) return cleanImportCell(value);
+    const rate = num > 0 && num < 1 ? num * 100 : num;
+    return String(Number(rate.toFixed(3)));
+  }
+
+  function normalizeImportZip(value) {
+    const text = cleanImportCell(value).replace(/\.0$/, '');
+    if (!text) return '';
+    if (/^\d{1,4}$/.test(text)) return text.padStart(5, '0');
+    return text;
+  }
+
+  function normalizeImportState(value) {
+    return cleanImportCell(value).toUpperCase();
+  }
+
+  function normalizeImportPropertyType(value) {
+    const text = cleanImportCell(value);
+    const key = normalizeImportHeader(text);
+    if (!key) return '';
+    if (key === 'o' || key.includes('owner') || key.includes('primary')) return 'O';
+    if (key === '2nd' || key.startsWith('2') || key.includes('second')) return '2nd';
+    if (key === 'ip' || key.includes('investment')) return 'IP';
+    return text;
+  }
+
+  function normalizeImportPr(value) {
+    const text = cleanImportCell(value);
+    const key = normalizeImportHeader(text);
+    if (!key) return '';
+    if (key === 'p' || key.includes('purchase')) return 'P';
+    if (key === 'r' || key.includes('refi') || key.includes('refinance')) return 'R';
+    return text;
+  }
+
+  function pad2(n) {
+    return String(n).padStart(2, '0');
+  }
+
+  function formatImportDate(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+  }
+
+  function excelSerialToDate(serial) {
+    const date = new Date(Date.UTC(1899, 11, 30));
+    date.setUTCDate(date.getUTCDate() + Number(serial));
+    return date;
+  }
+
+  function normalizeImportDate(value) {
+    if (value instanceof Date) return formatImportDate(value);
+    if (typeof value === 'number' && value > 25000 && value < 90000) return formatImportDate(excelSerialToDate(value));
+    const text = cleanImportCell(value);
+    if (!text) return '';
+    const iso = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if (iso) return `${iso[1]}-${pad2(iso[2])}-${pad2(iso[3])}`;
+    const us = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/);
+    if (us) {
+      const year = us[3].length === 2 ? '20' + us[3] : us[3];
+      return `${year}-${pad2(us[1])}-${pad2(us[2])}`;
+    }
+    return text;
+  }
+
+  function splitJointNames(text) {
+    return cleanImportCell(text).split(/\s*(?:&|\band\b)\s*/i).map(part => part.trim()).filter(Boolean);
+  }
+
+  function splitFullName(text) {
+    const parts = cleanImportCell(text).split(/\s+/).filter(Boolean);
+    if (parts.length <= 1) return { first: parts[0] || '', last: '' };
+    return { first: parts.slice(0, -1).join(' '), last: parts[parts.length - 1] };
+  }
+
+  function borrowersFromSingleNameCell(text) {
+    const borrowers = splitJointNames(text).map(splitFullName);
+    const sharedLast = [...borrowers].reverse().find(person => person.last)?.last || '';
+    if (sharedLast) {
+      borrowers.forEach(person => {
+        if (!person.last) person.last = sharedLast;
+      });
+    }
+    return borrowers;
+  }
+
+  function borrowersFromCells(firstCell, lastCell) {
+    const firstText = cleanImportCell(firstCell);
+    const lastText = cleanImportCell(lastCell);
+    if (!firstText && !lastText) return [];
+
+    if (firstText && lastText) {
+      const firstParts = splitJointNames(firstText);
+      const lastParts = splitJointNames(lastText);
+      if (firstParts.length > 1) {
+        return firstParts.map((first, index) => ({
+          first,
+          last: lastParts[index] || lastText
+        }));
+      }
+      return [{ first: firstText, last: lastText }];
+    }
+
+    return borrowersFromSingleNameCell(firstText || lastText);
+  }
+
+  function assignImportedBorrowers(client, borrowers) {
+    borrowers.slice(0, 4).forEach((person, index) => {
+      const n = index + 1;
+      if (person.first) client['borrower' + n + 'first'] = person.first;
+      if (person.last) client['borrower' + n + 'last'] = person.last;
+    });
+  }
+
+  function mapImportedBorrowers(client, row, headerKeys) {
+    const borrowers = [];
+
+    BORROWER_FULL_ALIASES.forEach(aliases => {
+      const full = importValue(row, headerKeys, aliases);
+      if (full) borrowers.push(...borrowersFromCells(full, ''));
+    });
+
+    BORROWER_FIRST_ALIASES.forEach((aliases, index) => {
+      const first = importValue(row, headerKeys, aliases);
+      const last = importValue(row, headerKeys, BORROWER_LAST_ALIASES[index]);
+      if (first || last) borrowers[index] = borrowersFromCells(first, last)[0] || { first, last };
+    });
+
+    if (borrowers.length === 0) {
+      const genericKeys = BORROWER_GENERIC_HEADERS.map(normalizeImportHeader);
+      const borrowerColumns = headerKeys
+        .map((key, index) => genericKeys.includes(key) ? index : -1)
+        .filter(index => index >= 0);
+      if (borrowerColumns.length >= 2) {
+        borrowers.push(...borrowersFromCells(row[borrowerColumns[0]], row[borrowerColumns[1]]));
+      } else if (borrowerColumns.length === 1) {
+        borrowers.push(...borrowersFromCells(row[borrowerColumns[0]], ''));
+      }
+    }
+
+    assignImportedBorrowers(client, borrowers.filter(Boolean));
+  }
+
+  function setImportField(client, field, value) {
+    const cleaned = cleanImportCell(value);
+    if (cleaned !== '') client[field] = cleaned;
+  }
+
+  function mapSpreadsheetRow(row, headerKeys) {
+    const client = {};
+
+    setImportField(client, 'proptype', normalizeImportPropertyType(importValue(row, headerKeys, IMPORT_FIELD_ALIASES.proptype)));
+    setImportField(client, 'pr', normalizeImportPr(importValue(row, headerKeys, IMPORT_FIELD_ALIASES.pr)));
+    setImportField(client, 'program', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.program));
+    setImportField(client, 'rate', normalizeImportRate(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.rate)));
+    setImportField(client, 'salesprice', normalizeImportNumber(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.salesprice)));
+    setImportField(client, 'loanamt', normalizeImportNumber(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.loanamt)));
+    setImportField(client, 'closing', normalizeImportDate(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.closing)));
+    setImportField(client, 'referral', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.referral));
+    setImportField(client, 'address', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.address));
+    setImportField(client, 'city', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.city));
+    setImportField(client, 'state', normalizeImportState(importValue(row, headerKeys, IMPORT_FIELD_ALIASES.state)));
+    setImportField(client, 'zip', normalizeImportZip(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.zip)));
+    setImportField(client, 'cell1', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.cell1));
+    setImportField(client, 'email1', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.email1));
+    setImportField(client, 'birthday1', normalizeImportDate(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.birthday1)));
+    setImportField(client, 'cell2', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.cell2));
+    setImportField(client, 'email2', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.email2));
+    setImportField(client, 'birthday2', normalizeImportDate(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.birthday2)));
+
+    mapImportedBorrowers(client, row, headerKeys);
+    return client;
+  }
+
+  function hasClientImportData(client) {
+    const hasClientIdentity = ['borrower1first','borrower1last','borrower2first','borrower2last','email1','cell1']
+      .some(field => cleanImportCell(client[field]) !== '');
+    const hasMappedData = ['proptype','pr','program','rate','salesprice','loanamt','closing','referral','city','state','zip','email1','cell1']
+      .some(field => cleanImportCell(client[field]) !== '');
+    return hasClientIdentity && hasMappedData;
+  }
+
+  function mapSpreadsheetRows(rows) {
+    const headerIndex = findImportHeaderRow(rows);
+    if (headerIndex < 0) throw new Error('No recognizable header row found.');
+    const headerKeys = rows[headerIndex].map(normalizeImportHeader);
+    const ignoredHeaders = ignoredImportHeaders(rows[headerIndex]);
+    if (ignoredHeaders.length) {
+      console.info('Ignoring unrecognized spreadsheet import columns:', ignoredHeaders.join(', '));
+    }
+    return rows
+      .slice(headerIndex + 1)
+      .filter(row => !isBlankImportRow(row))
+      .map(row => mapSpreadsheetRow(row, headerKeys))
+      .filter(hasClientImportData);
+  }
+
+  function parseCsvRows(text) {
+    const rows = [];
+    let row = [];
+    let cell = '';
+    let quoted = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (quoted) {
+        if (ch === '"' && text[i + 1] === '"') {
+          cell += '"';
+          i += 1;
+        } else if (ch === '"') {
+          quoted = false;
+        } else {
+          cell += ch;
+        }
+      } else if (ch === '"') {
+        quoted = true;
+      } else if (ch === ',') {
+        row.push(cell);
+        cell = '';
+      } else if (ch === '\n') {
+        row.push(cell);
+        rows.push(row);
+        row = [];
+        cell = '';
+      } else if (ch !== '\r') {
+        cell += ch;
+      }
+    }
+
+    if (cell || row.length) {
+      row.push(cell);
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  function parseWorkbookClients(buffer) {
+    if (!window.XLSX) throw new Error('Spreadsheet parser did not load.');
+    const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const records = [];
+    workbook.SheetNames.forEach(sheetName => {
+      const sheet = workbook.Sheets[sheetName];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '', raw: true });
+      if (!rows.some(row => !isBlankImportRow(row))) return;
+      try {
+        records.push(...mapSpreadsheetRows(rows));
+      } catch (err) {
+        if (!String(err.message || '').includes('recognizable header')) throw err;
+      }
+    });
+    if (records.length === 0) throw new Error('No client rows found.');
+    return records;
+  }
+
+  function parseJsonClients(text) {
+    const imported = JSON.parse(text);
+    if (!Array.isArray(imported)) throw new Error('JSON import must be an array.');
+    return imported.filter(raw => raw && typeof raw === 'object');
+  }
+
+  function clientImportKey(client) {
+    return [
+      client.borrower1first,
+      client.borrower1last,
+      client.address,
+      client.closing,
+      client.loanamt
+    ].map(value => cleanImportCell(value).toLowerCase()).filter(Boolean).join('|');
+  }
+
+  async function saveImportedClients(imported) {
+    if (!Array.isArray(imported) || imported.length === 0) throw new Error('No client rows found.');
+    if (!db || !currentUser) { alert('Please sign in first.'); return; }
+
+    const existingIds = new Set(clients.map(c => c.id));
+    const existingByKey = new Map();
+    clients.forEach(client => {
+      const key = clientImportKey(client);
+      if (key && client.id) existingByKey.set(key, client.id);
+    });
+
+    const updates = {};
+    let added = 0;
+    let updated = 0;
+
+    imported.forEach(raw => {
+      if (!raw || typeof raw !== 'object') return;
+      const key = clientImportKey(raw);
+      const id = raw.id || (key ? existingByKey.get(key) : '') || uid();
+      const existing = clients.find(client => client.id === id) || {};
+      const now = Date.now();
+      updates[CLIENTS_PATH + '/' + id] = {
+        ...existing,
+        ...raw,
+        id,
+        createdAt: raw.createdAt || existing.createdAt || now,
+        updatedAt: now,
+        cosigner2: !!raw.cosigner2,
+        cosigner3: !!raw.cosigner3,
+        cosigner4: !!raw.cosigner4
+      };
+      if (key) existingByKey.set(key, id);
+      if (existingIds.has(id)) {
+        updated += 1;
+      } else {
+        added += 1;
+        existingIds.add(id);
+      }
+    });
+
+    if (Object.keys(updates).length === 0) throw new Error('No importable clients found.');
+    await db.ref().update(updates);
+    alert(`Import complete. ${added} client(s) added, ${updated} updated.`);
+  }
+
+  function importErrorMessage(extension) {
+    if (extension === 'json') return 'Could not read file. Make sure it is a valid CRM client export (.json).';
+    return 'Could not read spreadsheet. Make sure the sheet has recognizable borrower, address, loan, closing, and referral headers.';
+  }
+
   function importData(event) {
     const file = event.target.files[0];
     if (!file) return;
+    if (!db || !currentUser) { alert('Please sign in first.'); event.target.value = ''; return; }
+
+    const extension = (file.name.split('.').pop() || '').toLowerCase();
     const reader = new FileReader();
-    reader.onload = function(e) {
+
+    reader.onload = async function(e) {
       try {
-        const imported = JSON.parse(e.target.result);
-        if (!Array.isArray(imported)) throw new Error();
-        if (!db || !currentUser) { alert('Please sign in first.'); return; }
-        const existingIds = new Set(clients.map(c => c.id));
-        const updates = {};
-        let added = 0;
-        let updated = 0;
-        imported.forEach(raw => {
-          if (!raw || typeof raw !== 'object') return;
-          const id = raw.id || uid();
-          const now = Date.now();
-          updates[CLIENTS_PATH + '/' + id] = {
-            ...raw,
-            id,
-            createdAt: raw.createdAt || now,
-            updatedAt: now,
-            cosigner2: !!raw.cosigner2,
-            cosigner3: !!raw.cosigner3,
-            cosigner4: !!raw.cosigner4
-          };
-          if (existingIds.has(id)) updated++; else added++;
-        });
-        db.ref().update(updates)
-          .then(() => alert(`Import complete. ${added} client(s) added, ${updated} updated.`))
-          .catch(err => {
-            alert('Could not import clients. Please try again.');
-            console.error(err);
-          });
-      } catch {
-        alert('Could not read file. Make sure it is a valid CRM client export (.json).');
+        let imported = [];
+        if (extension === 'json') {
+          imported = parseJsonClients(e.target.result);
+        } else if (extension === 'csv') {
+          imported = mapSpreadsheetRows(parseCsvRows(e.target.result));
+        } else if (extension === 'xlsx' || extension === 'xls') {
+          imported = parseWorkbookClients(e.target.result);
+        } else {
+          throw new Error('Unsupported import file type.');
+        }
+        await saveImportedClients(imported);
+      } catch (err) {
+        alert(importErrorMessage(extension));
+        console.error(err);
       }
     };
-    reader.readAsText(file);
+
+    reader.onerror = function() {
+      alert(importErrorMessage(extension));
+    };
+
+    if (extension === 'xlsx' || extension === 'xls') {
+      if (!window.XLSX) {
+        alert('Spreadsheet imports need the Excel parser to load. Check the connection or export the sheet as CSV.');
+        event.target.value = '';
+        return;
+      }
+      reader.readAsArrayBuffer(file);
+    } else {
+      reader.readAsText(file);
+    }
     event.target.value = '';
   }
 

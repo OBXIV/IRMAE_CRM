@@ -86,12 +86,18 @@ Use the app button labeled `Import Clients`.
 
 Typical workflow:
 
-1. Convert a spreadsheet/export into CRM JSON locally.
+1. Prepare a CRM backup JSON, `.xlsx`, `.xls`, or `.csv` file.
 2. Open the live app.
 3. Sign in with an allowed Google account.
 4. Click `Import Clients`.
-5. Select the JSON file.
+5. Select the import file.
 6. Confirm the client records appear.
+
+Spreadsheet imports map familiar year-to-year column variations into CRM fields where possible. The importer recognizes the original workbook-style headers such as `O/2nd/IP`, `P/R`, `Borrower`, `Address`, `Price`, `Loan`, `Closing`, `Rate`, `Investor - Program`, and `Referral Partner`.
+
+Spreadsheet imports are whitelist-only. Columns with unrecognized headers are ignored and are not written to Firebase.
+
+Rows without a borrower/contact identity are skipped so workbook totals, commission summaries, and other footer rows do not become blank client records.
 
 Imported data is written to Firebase, not GitHub.
 
