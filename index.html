@@ -465,6 +465,68 @@
     .market-card .rate-note { margin-top: 5px; color: var(--faint); font-size: 0.78rem; }
     .refi-badge { background: rgba(245, 158, 11, 0.17); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.36); margin-left: 5px; }
 
+    .filter-panel {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 0 14px;
+      padding: 12px 14px;
+      background: rgba(18, 28, 46, 0.72);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+    .filter-label {
+      color: var(--muted);
+      font-size: 0.7rem;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+    }
+    .year-filter-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+    .year-filter-btn,
+    .filter-chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(8, 13, 23, 0.54);
+      color: var(--muted);
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .year-filter-btn:hover,
+    .year-filter-btn.active {
+      color: #bae6fd;
+      border-color: rgba(56, 189, 248, 0.42);
+      background: rgba(56, 189, 248, 0.14);
+    }
+    .filter-chip {
+      display: none;
+      color: #fcd34d;
+      border-color: rgba(245, 158, 11, 0.38);
+      background: rgba(245, 158, 11, 0.13);
+    }
+    .filter-chip.show { display: inline-flex; align-items: center; gap: 5px; }
+    .scope-label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 750;
+      text-align: right;
+      min-width: 190px;
+    }
+
     /* Table */
     .table-wrap {
       background: rgba(18, 28, 46, 0.88);
@@ -499,6 +561,54 @@
     .table-loan { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     .status-stack { display: flex; flex-wrap: wrap; gap: 6px; }
     .row-arrow { color: var(--faint); font-size: 1rem; text-align: right; }
+    .table-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 750;
+    }
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .page-size {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .page-size select {
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      background: #0a1020;
+      color: var(--text);
+      padding: 6px 9px;
+      font-size: 0.8rem;
+      font-weight: 800;
+    }
+    .pager-btn {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text);
+      padding: 7px 11px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .pager-btn:hover:not(:disabled) { background: rgba(56, 189, 248, 0.14); border-color: rgba(56, 189, 248, 0.38); }
+    .pager-btn:disabled {
+      opacity: 0.42;
+      cursor: default;
+    }
+    .page-indicator { color: var(--text); min-width: 82px; text-align: center; }
 
     /* Badges */
     .badge {
@@ -813,6 +923,10 @@
       .stats { grid-template-columns: 1fr; }
       .form-grid, .form-grid-3 { grid-template-columns: 1fr; }
       .market-panel { grid-template-columns: 1fr; }
+      .filter-panel,
+      .table-footer { flex-direction: column; align-items: stretch; }
+      .scope-label { text-align: left; min-width: 0; }
+      .pagination-controls { justify-content: flex-start; }
       .referral-preview-head,
       .page-head { flex-direction: column; align-items: stretch; }
       .referral-preview-list,
@@ -875,7 +989,7 @@
 
   <section class="page-view" id="dashboardView">
   <div class="topbar">
-    <input class="search-input" type="text" id="searchInput" placeholder="Search by borrower, address, city, referral partner, program…" oninput="renderTable()" />
+    <input class="search-input" type="text" id="searchInput" placeholder="Search by borrower, address, city, referral partner, program…" oninput="handleSearchInput()" />
     <button class="btn btn-primary" onclick="openModal()">+ Add Client</button>
     <span id="currentUserEmail" style="font-size:0.82rem;color:#93a4b8;font-weight:600"></span>
     <div class="utility-menu">
@@ -931,6 +1045,15 @@
     </div>
   </div>
 
+  <div class="filter-panel">
+    <div class="filter-group">
+      <div class="filter-label">Closing Year</div>
+      <div class="year-filter-buttons" id="yearFilterButtons"></div>
+      <button class="filter-chip" id="activeYearChip" onclick="clearYearFilter()"></button>
+    </div>
+    <div class="scope-label" id="scopeLabel">Showing: All Years</div>
+  </div>
+
   <div class="table-wrap">
     <table>
       <thead>
@@ -948,6 +1071,22 @@
     <div class="empty-state" id="emptyState" style="display:none">
       <div class="icon">📋</div>
       <p>No clients yet. Click <strong>+ Add Client</strong> to get started.</p>
+    </div>
+    <div class="table-footer">
+      <div id="paginationSummary">Showing 0 records</div>
+      <div class="pagination-controls">
+        <label class="page-size">
+          Rows
+          <select id="pageSizeSelect" onchange="setPageSize(this.value)">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+          </select>
+        </label>
+        <button class="pager-btn" id="prevPageBtn" onclick="changePage(-1)">Previous</button>
+        <span class="page-indicator" id="pageIndicator">Page 1 of 1</span>
+        <button class="pager-btn" id="nextPageBtn" onclick="changePage(1)">Next</button>
+      </div>
     </div>
   </div>
   </section>
@@ -1240,6 +1379,9 @@
   let selectedClientId = null;
   let showRefiOnly = false;
   let showReferralPreview = false;
+  let activeYearFilter = 'all';
+  let currentPage = 1;
+  let pageSize = 50;
   let db = null;
   let auth = null;
   let currentUser = null;
@@ -1276,6 +1418,7 @@
         const loanamt = i === partner.count - 1
           ? partner.volume - (baseLoan * (partner.count - 1))
           : baseLoan;
+        const closingYear = (i % 4 === 0) ? '2018' : '2025';
         const month = String(((partnerIndex + i) % 12) + 1).padStart(2, '0');
         const day = String(((i * 3) % 25) + 3).padStart(2, '0');
         return {
@@ -1292,7 +1435,7 @@
           rate: (5.875 + ((partnerIndex + i) % 5) * 0.125).toFixed(3),
           salesprice: Math.round(loanamt * 1.18),
           loanamt,
-          closing: `2026-${month}-${day}`,
+          closing: `${closingYear}-${month}-${day}`,
           referral: partner.referral,
           createdAt: Date.now(),
           updatedAt: Date.now()
@@ -1453,9 +1596,9 @@
     return String(value || '').trim().replace(/\s+/g, ' ');
   }
 
-  function getReferralPartnerStats() {
+  function getReferralPartnerStats(sourceClients = clients) {
     const partnerMap = new Map();
-    clients.forEach(c => {
+    sourceClients.forEach(c => {
       const name = cleanReferralName(c.referral);
       if (!name || name.toLowerCase() === 'self') return;
 
@@ -1480,6 +1623,64 @@
     return Array.from(partnerMap.values())
       .sort((a, b) => b.count - a.count || b.volume - a.volume || a.name.localeCompare(b.name))
       .map((row, index) => ({ ...row, rank: index + 1 }));
+  }
+
+  function closingYear(c) {
+    const raw = String(c?.closing || '').trim();
+    const match = raw.match(/^(\d{4})/);
+    return match ? match[1] : '';
+  }
+
+  function getAvailableYears() {
+    return Array.from(new Set(clients.map(closingYear).filter(Boolean)))
+      .sort((a, b) => Number(b) - Number(a));
+  }
+
+  function sortedClients() {
+    return [...clients].sort((a, b) => {
+      if (!a.closing && !b.closing) return 0;
+      if (!a.closing) return 1;
+      if (!b.closing) return -1;
+      return String(b.closing).localeCompare(String(a.closing));
+    });
+  }
+
+  function matchesSearch(c, q) {
+    if (!q) return true;
+    return (
+      (c.borrower1first || '').toLowerCase().includes(q) ||
+      (c.borrower1last  || '').toLowerCase().includes(q) ||
+      (c.borrower2first || '').toLowerCase().includes(q) ||
+      (c.borrower2last  || '').toLowerCase().includes(q) ||
+      (c.borrower3first || '').toLowerCase().includes(q) ||
+      (c.borrower3last  || '').toLowerCase().includes(q) ||
+      (c.borrower4first || '').toLowerCase().includes(q) ||
+      (c.borrower4last  || '').toLowerCase().includes(q) ||
+      (c.address        || '').toLowerCase().includes(q) ||
+      (c.city           || '').toLowerCase().includes(q) ||
+      (c.state          || '').toLowerCase().includes(q) ||
+      (c.referral       || '').toLowerCase().includes(q) ||
+      (c.program        || '').toLowerCase().includes(q) ||
+      (c.email1         || '').toLowerCase().includes(q) ||
+      (c.email2         || '').toLowerCase().includes(q) ||
+      (c.cell1          || '').toLowerCase().includes(q) ||
+      (c.cell2          || '').toLowerCase().includes(q)
+    );
+  }
+
+  function getFilteredClients(options = {}) {
+    const includeSearch = options.includeSearch !== false;
+    const includeRefi = options.includeRefi !== false;
+    const q = includeSearch
+      ? document.getElementById('searchInput').value.trim().toLowerCase()
+      : '';
+
+    return sortedClients().filter(c => {
+      if (activeYearFilter !== 'all' && closingYear(c) !== activeYearFilter) return false;
+      if (!matchesSearch(c, q)) return false;
+      if (includeRefi && showRefiOnly && !shouldFlagRefi(c)) return false;
+      return true;
+    });
   }
 
   function fmtRate(r) {
@@ -1753,6 +1954,7 @@
 
   function toggleRefiFilter() {
     showRefiOnly = !showRefiOnly;
+    currentPage = 1;
     renderTable();
   }
 
@@ -1794,7 +1996,7 @@
     closeClientDrawer();
     document.getElementById('dashboardView').hidden = true;
     document.getElementById('referralPartnersView').hidden = false;
-    renderReferralPartnersPage();
+    renderReferralPartnersPage(getReferralPartnerStats(getFilteredClients()));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -1805,7 +2007,7 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function renderReferralPartnersPage(rows = getReferralPartnerStats()) {
+  function renderReferralPartnersPage(rows = getReferralPartnerStats(getFilteredClients())) {
     const totalLoans = rows.reduce((sum, row) => sum + row.count, 0);
     const totalVolume = rows.reduce((sum, row) => sum + row.volume, 0);
     document.getElementById('partner-summary-count').textContent = rows.length;
@@ -1960,51 +2162,109 @@
     });
   }
 
+  function handleSearchInput() {
+    currentPage = 1;
+    renderTable();
+  }
+
+  function setYearFilter(year) {
+    activeYearFilter = year || 'all';
+    currentPage = 1;
+    renderTable();
+  }
+
+  function clearYearFilter() {
+    setYearFilter('all');
+  }
+
+  function setPageSize(value) {
+    pageSize = parseInt(value, 10) || 50;
+    currentPage = 1;
+    renderTable();
+  }
+
+  function changePage(delta) {
+    currentPage += delta;
+    renderTable();
+  }
+
+  function renderYearFilters() {
+    const years = getAvailableYears();
+    if (activeYearFilter !== 'all' && !years.includes(activeYearFilter)) {
+      activeYearFilter = 'all';
+    }
+
+    const buttons = [
+      { value: 'all', label: 'All Years' },
+      ...years.map(year => ({ value: year, label: year }))
+    ];
+
+    document.getElementById('yearFilterButtons').innerHTML = buttons.map(btn => `
+      <button
+        class="year-filter-btn${activeYearFilter === btn.value ? ' active' : ''}"
+        onclick="setYearFilter('${esc(btn.value)}')"
+        aria-pressed="${activeYearFilter === btn.value}">
+        ${esc(btn.label)}
+      </button>
+    `).join('');
+
+    const chip = document.getElementById('activeYearChip');
+    if (activeYearFilter === 'all') {
+      chip.classList.remove('show');
+      chip.textContent = '';
+    } else {
+      chip.classList.add('show');
+      chip.innerHTML = `Year: ${esc(activeYearFilter)} <span aria-hidden="true">&times;</span>`;
+    }
+  }
+
+  function renderScopeLabel(total) {
+    const search = document.getElementById('searchInput').value.trim();
+    const pieces = [activeYearFilter === 'all' ? 'All Years' : `${activeYearFilter} Closings`];
+    if (showRefiOnly) pieces.push('Refi Watch');
+    if (search) pieces.push(`Search: "${search}"`);
+    document.getElementById('scopeLabel').textContent = `Showing: ${pieces.join(' | ')} | ${loanCountLabel(total)}`;
+  }
+
+  function renderPagination(total) {
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (currentPage < 1) currentPage = 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start = total ? ((currentPage - 1) * pageSize) + 1 : 0;
+    const end = total ? Math.min(start + pageSize - 1, total) : 0;
+    document.getElementById('paginationSummary').textContent = total
+      ? `Showing ${start}-${end} of ${total} records`
+      : 'No records in current view';
+    document.getElementById('pageIndicator').textContent = `Page ${currentPage} of ${totalPages}`;
+    document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+    document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+    document.getElementById('pageSizeSelect').value = String(pageSize);
+  }
+
   // ── Render ───────────────────────────────────────────────
   function renderTable() {
-    const q = document.getElementById('searchInput').value.trim().toLowerCase();
     const body = document.getElementById('clientTableBody');
     const empty = document.getElementById('emptyState');
 
-    const sorted = [...clients].sort((a, b) => {
-      if (!a.closing && !b.closing) return 0;
-      if (!a.closing) return 1;
-      if (!b.closing) return -1;
-      return b.closing.localeCompare(a.closing);
-    });
-
-    const searchFiltered = q ? sorted.filter(c =>
-      (c.borrower1first || '').toLowerCase().includes(q) ||
-      (c.borrower1last  || '').toLowerCase().includes(q) ||
-      (c.borrower2first || '').toLowerCase().includes(q) ||
-      (c.borrower2last  || '').toLowerCase().includes(q) ||
-      (c.borrower3first || '').toLowerCase().includes(q) ||
-      (c.borrower3last  || '').toLowerCase().includes(q) ||
-      (c.borrower4first || '').toLowerCase().includes(q) ||
-      (c.borrower4last  || '').toLowerCase().includes(q) ||
-      (c.address        || '').toLowerCase().includes(q) ||
-      (c.city           || '').toLowerCase().includes(q) ||
-      (c.state          || '').toLowerCase().includes(q) ||
-      (c.referral       || '').toLowerCase().includes(q) ||
-      (c.program        || '').toLowerCase().includes(q) ||
-      (c.email1         || '').toLowerCase().includes(q) ||
-      (c.email2         || '').toLowerCase().includes(q) ||
-      (c.cell1          || '').toLowerCase().includes(q) ||
-      (c.cell2          || '').toLowerCase().includes(q)
-    ) : sorted;
-
-    const filtered = showRefiOnly ? searchFiltered.filter(shouldFlagRefi) : searchFiltered;
+    renderYearFilters();
+    const filtered = getFilteredClients();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+    const pageStart = (currentPage - 1) * pageSize;
+    const pageRows = filtered.slice(pageStart, pageStart + pageSize);
 
     body.innerHTML = '';
 
-    if (filtered.length === 0) {
+    if (pageRows.length === 0) {
       empty.innerHTML = clients.length
         ? `<div class="icon">∅</div><p>No records match the current view.</p>`
         : `<div class="icon">📋</div><p>No clients yet. Click <strong>+ Add Client</strong> to get started.</p>`;
       empty.style.display = 'block';
     } else {
       empty.style.display = 'none';
-      filtered.forEach(c => {
+      pageRows.forEach(c => {
         const tr = document.createElement('tr');
         tr.className = selectedClientId === c.id ? 'selected' : '';
         tr.tabIndex = 0;
@@ -2044,25 +2304,27 @@
         body.appendChild(tr);
       });
     }
-    updateStats();
+    updateStats(filtered);
+    renderPagination(filtered.length);
+    renderScopeLabel(filtered.length);
   }
 
-  function updateStats() {
-    document.getElementById('stat-total').textContent = clients.length;
+  function updateStats(scopedClients = getFilteredClients()) {
+    document.getElementById('stat-total').textContent = scopedClients.length;
 
-    const vol = clients.reduce((s, c) => s + (parseFloat(c.loanamt) || 0), 0);
+    const vol = scopedClients.reduce((s, c) => s + (parseFloat(c.loanamt) || 0), 0);
     document.getElementById('stat-volume').textContent = vol >= 1e6
       ? '$' + (vol / 1e6).toFixed(2) + 'M'
       : '$' + vol.toLocaleString();
 
-    const rates = clients.filter(c => c.rate).map(c => parseFloat(c.rate)).filter(r => !isNaN(r));
+    const rates = scopedClients.filter(c => c.rate).map(c => parseFloat(c.rate)).filter(r => !isNaN(r));
     document.getElementById('stat-avg-rate').textContent = rates.length
       ? (rates.reduce((a,b) => a+b, 0) / rates.length).toFixed(3) + '%' : '—';
 
-    document.getElementById('stat-purchases').textContent = clients.filter(c => c.pr === 'P').length;
-    document.getElementById('stat-refis').textContent     = clients.filter(c => c.pr === 'R').length;
+    document.getElementById('stat-purchases').textContent = scopedClients.filter(c => c.pr === 'P').length;
+    document.getElementById('stat-refis').textContent     = scopedClients.filter(c => c.pr === 'R').length;
 
-    const referralRows = getReferralPartnerStats();
+    const referralRows = getReferralPartnerStats(scopedClients);
     const topReferral = referralRows[0];
     document.getElementById('stat-top-referral-name').textContent = topReferral ? topReferral.name : '—';
     document.getElementById('stat-top-referral-loans').textContent = topReferral ? loanCountLabel(topReferral.count) : '0 Loans';
@@ -2070,7 +2332,7 @@
     renderReferralPreview(referralRows);
     if (!document.getElementById('referralPartnersView').hidden) renderReferralPartnersPage(referralRows);
 
-    const refiWatch = clients.filter(shouldFlagRefi).length;
+    const refiWatch = getFilteredClients({ includeRefi: false }).filter(shouldFlagRefi).length;
     document.getElementById('refiWatchCount').textContent = refiWatch;
     document.getElementById('refiWatchCard').classList.toggle('active', showRefiOnly);
     document.getElementById('refiWatchNote').textContent = marketRates?.thirtyYear?.rate
