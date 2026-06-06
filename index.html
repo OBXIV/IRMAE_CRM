@@ -734,6 +734,12 @@
     .badge-usda { background: rgba(245, 158, 11, 0.16); color: #fcd34d; border-color: rgba(245, 158, 11, 0.32); }
     .badge-jumbo{ background: rgba(239, 68, 68, 0.16); color: #fca5a5; border-color: rgba(239, 68, 68, 0.32); }
     .badge-other{ background: rgba(148, 163, 184, 0.14); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.26); }
+    .badge.badge-deceased {
+      background: #ffffff;
+      color: #111827;
+      border-color: rgba(226, 232, 240, 0.96);
+      box-shadow: 0 1px 5px rgba(15, 23, 42, 0.18);
+    }
 
     .actions { display: flex; gap: 8px; }
 
@@ -1304,6 +1310,9 @@
         <label>Borrower 1 Last *</label>
         <input type="text" id="f-borrower1last" placeholder="Last" />
       </div>
+      <label class="cosigner-check">
+        <input type="checkbox" id="f-deceased1" /> Deceased
+      </label>
       <div class="field">
         <label>Borrower 2 First</label>
         <input type="text" id="f-borrower2first" placeholder="First" />
@@ -1314,6 +1323,9 @@
       </div>
       <label class="cosigner-check">
         <input type="checkbox" id="f-cosigner2" /> Co-Signer
+      </label>
+      <label class="cosigner-check">
+        <input type="checkbox" id="f-deceased2" /> Deceased
       </label>
     </div>
     <div class="form-grid" id="borrower3-row" style="display:none; margin-top:14px">
@@ -1328,6 +1340,9 @@
       <label class="cosigner-check">
         <input type="checkbox" id="f-cosigner3" /> Co-Signer
       </label>
+      <label class="cosigner-check">
+        <input type="checkbox" id="f-deceased3" /> Deceased
+      </label>
     </div>
     <div class="form-grid" id="borrower4-row" style="display:none; margin-top:14px">
       <div class="field">
@@ -1340,6 +1355,9 @@
       </div>
       <label class="cosigner-check">
         <input type="checkbox" id="f-cosigner4" /> Co-Signer
+      </label>
+      <label class="cosigner-check">
+        <input type="checkbox" id="f-deceased4" /> Deceased
       </label>
     </div>
     <div style="margin-top:8px">
@@ -1441,7 +1459,7 @@
           <option value="Riley Wilcox">
           <option value="Roland Corall">
           <option value="Ryan">
-          <option value="SELF">
+          <option value="Self">
           <option value="Tanner Fisher">
           <option value="Tony Allen">
           <option value="Zillow">
@@ -1536,13 +1554,13 @@
   const FIREBASE_CONFIG_STORAGE_KEY = 'irmae_crm_firebase_config';
   const CLIENTS_PATH = 'clients';
   const REFERRAL_CANONICAL_NAMES = {
-    self: 'SELF',
-    irma: 'SELF',
-    pc: 'SELF',
-    'pc - irma': 'SELF',
+    self: 'Self',
+    irma: 'Self',
+    pc: 'Self',
+    'pc - irma': 'Self',
     'pc - jerod': 'Jerod Lee',
-    'call in lead': 'SELF',
-    'past client': 'SELF',
+    'call in lead': 'Self',
+    'past client': 'Self',
     'adan gustafson': 'Adam Gustafson',
     'adam gustafson': 'Adam Gustafson',
     easton: 'Easton Napiontek',
@@ -1759,7 +1777,11 @@
       referral: cleanReferralName(c.referral),
       cosigner2: !!c.cosigner2,
       cosigner3: !!c.cosigner3,
-      cosigner4: !!c.cosigner4
+      cosigner4: !!c.cosigner4,
+      deceased1: !!c.deceased1,
+      deceased2: !!c.deceased2,
+      deceased3: !!c.deceased3,
+      deceased4: !!c.deceased4
     };
   }
 
@@ -1986,7 +2008,7 @@
     const partnerMap = new Map();
     sourceClients.forEach(c => {
       const name = cleanReferralName(c.referral);
-      if (!name || name.toLowerCase() === 'self') return;
+      if (!name) return;
 
       const key = name.toLowerCase();
       if (!partnerMap.has(key)) {
@@ -2147,6 +2169,18 @@
     return [1,2,3,4].map(n => borrowerName(c, n)).filter(Boolean);
   }
 
+  function borrowerDisplay(c, n) {
+    const name = borrowerName(c, n);
+    if (!name) return '';
+    const cosigner = c['cosigner' + n] ? ' <span class="badge badge-cosigner">Co-Signer</span>' : '';
+    const deceased = c['deceased' + n] ? ' <span class="badge badge-deceased">Deceased</span>' : '';
+    return esc(name) + cosigner + deceased;
+  }
+
+  function primaryBorrowerDisplay(c) {
+    return [1,2,3,4].map(n => borrowerDisplay(c, n)).find(Boolean) || esc(primaryBorrower(c));
+  }
+
   function primaryBorrower(c) {
     return borrowerName(c, 1) || allBorrowers(c)[0] || 'Unnamed Client';
   }
@@ -2295,6 +2329,10 @@
       cosigner2: drawerChecked('cosigner2'),
       cosigner3: drawerChecked('cosigner3'),
       cosigner4: drawerChecked('cosigner4'),
+      deceased1: drawerChecked('deceased1'),
+      deceased2: drawerChecked('deceased2'),
+      deceased3: drawerChecked('deceased3'),
+      deceased4: drawerChecked('deceased4'),
       address: drawerValue('address'),
       city: drawerValue('city'),
       state: drawerValue('state'),
@@ -2335,9 +2373,8 @@
   function borrowerContact(c, n) {
     const name = borrowerName(c, n);
     if (!name) return '';
-    const cosigner = c['cosigner' + n] ? ' <span class="badge badge-cosigner">Co-Signer</span>' : '';
     const pieces = [
-      esc(name) + cosigner,
+      borrowerDisplay(c, n),
       c['cell' + n] ? esc(c['cell' + n]) : '',
       c['email' + n] ? esc(c['email' + n]) : '',
       c['birthday' + n] ? 'Birthday ' + esc(fmtShortDate(c['birthday' + n])) : ''
@@ -2575,7 +2612,7 @@
     content.innerHTML = `
       <div class="drawer-head">
         <div class="drawer-eyebrow">${esc(prLabel(c.pr))} Record</div>
-        <div class="drawer-title">${esc(primaryBorrower(c))}</div>
+        <div class="drawer-title">${primaryBorrowerDisplay(c)}</div>
         <div class="drawer-subtitle">${esc(fullAddress(c)) || 'No property address on file'}</div>
         <div class="drawer-badges">${badges}</div>
       </div>
@@ -2586,21 +2623,25 @@
             <div class="drawer-field-group">
               ${drawerInputField('Borrower 1 First', 'borrower1first', c.borrower1first)}
               ${drawerInputField('Borrower 1 Last', 'borrower1last', c.borrower1last)}
+              ${drawerCheckboxField('Borrower 1 Deceased', 'deceased1', c.deceased1)}
             </div>
             <div class="drawer-field-group">
               ${drawerInputField('Borrower 2 First', 'borrower2first', c.borrower2first)}
               ${drawerInputField('Borrower 2 Last', 'borrower2last', c.borrower2last)}
               ${drawerCheckboxField('Borrower 2 Co-Signer', 'cosigner2', c.cosigner2)}
+              ${drawerCheckboxField('Borrower 2 Deceased', 'deceased2', c.deceased2)}
             </div>
             <div class="drawer-field-group">
               ${drawerInputField('Borrower 3 First', 'borrower3first', c.borrower3first)}
               ${drawerInputField('Borrower 3 Last', 'borrower3last', c.borrower3last)}
               ${drawerCheckboxField('Borrower 3 Co-Signer', 'cosigner3', c.cosigner3)}
+              ${drawerCheckboxField('Borrower 3 Deceased', 'deceased3', c.deceased3)}
             </div>
             <div class="drawer-field-group">
               ${drawerInputField('Borrower 4 First', 'borrower4first', c.borrower4first)}
               ${drawerInputField('Borrower 4 Last', 'borrower4last', c.borrower4last)}
               ${drawerCheckboxField('Borrower 4 Co-Signer', 'cosigner4', c.cosigner4)}
+              ${drawerCheckboxField('Borrower 4 Deceased', 'deceased4', c.deceased4)}
             </div>
           </div>
         </div>
@@ -2782,16 +2823,16 @@
             openClientDrawer(c.id);
           }
         });
-        const borrowers = allBorrowers(c);
-        const secondaryBorrowers = borrowers.slice(1);
+        const borrowerRows = [1,2,3,4].map(n => borrowerDisplay(c, n)).filter(Boolean);
+        const secondaryBorrowers = borrowerRows.slice(1);
         const address = fullAddress(c);
         const loanLine = [prLabel(c.pr), c.program].filter(Boolean).join(' / ');
         const refiTag = shouldFlagRefi(c) ? `<span class="badge refi-badge" title="Client rate is at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above the current 30-year national average">Refi Watch</span>` : '';
         const statusBadges = [propBadge(c.proptype), prBadge(c.pr), refiTag].filter(x => x && x !== '—').join('');
         tr.innerHTML = `
           <td>
-            <div class="primary">${esc(primaryBorrower(c))}</div>
-            ${secondaryBorrowers.length ? `<div class="sub">${esc(secondaryBorrowers.join(' / '))}</div>` : ''}
+            <div class="primary">${borrowerRows[0] || esc(primaryBorrower(c))}</div>
+            ${secondaryBorrowers.length ? `<div class="sub">${secondaryBorrowers.join(' / ')}</div>` : ''}
           </td>
           <td>
             <div>${esc(address) || '—'}</div>
@@ -2883,6 +2924,10 @@
     document.getElementById('f-cosigner2').checked = false;
     document.getElementById('f-cosigner3').checked = false;
     document.getElementById('f-cosigner4').checked = false;
+    document.getElementById('f-deceased1').checked = false;
+    document.getElementById('f-deceased2').checked = false;
+    document.getElementById('f-deceased3').checked = false;
+    document.getElementById('f-deceased4').checked = false;
 
     if (id) {
       const c = clients.find(x => x.id === id);
@@ -2893,6 +2938,10 @@
         document.getElementById('f-cosigner2').checked = !!c.cosigner2;
         document.getElementById('f-cosigner3').checked = !!c.cosigner3;
         document.getElementById('f-cosigner4').checked = !!c.cosigner4;
+        document.getElementById('f-deceased1').checked = !!c.deceased1;
+        document.getElementById('f-deceased2').checked = !!c.deceased2;
+        document.getElementById('f-deceased3').checked = !!c.deceased3;
+        document.getElementById('f-deceased4').checked = !!c.deceased4;
       }
     }
 
@@ -2921,6 +2970,10 @@
     data.cosigner2 = document.getElementById('f-cosigner2').checked;
     data.cosigner3 = document.getElementById('f-cosigner3').checked;
     data.cosigner4 = document.getElementById('f-cosigner4').checked;
+    data.deceased1 = document.getElementById('f-deceased1').checked;
+    data.deceased2 = document.getElementById('f-deceased2').checked;
+    data.deceased3 = document.getElementById('f-deceased3').checked;
+    data.deceased4 = document.getElementById('f-deceased4').checked;
 
     try {
       const now = Date.now();
@@ -3409,6 +3462,11 @@
       const id = rawClient.id || (key ? existingByKey.get(key) : '') || uid();
       const existing = clients.find(client => client.id === id) || {};
       const now = Date.now();
+      const deceasedUpdates = {};
+      [1,2,3,4].forEach(n => {
+        const field = 'deceased' + n;
+        if (Object.prototype.hasOwnProperty.call(rawClient, field)) deceasedUpdates[field] = !!rawClient[field];
+      });
       updates[CLIENTS_PATH + '/' + id] = {
         ...existing,
         ...rawClient,
@@ -3417,7 +3475,8 @@
         updatedAt: now,
         cosigner2: !!rawClient.cosigner2,
         cosigner3: !!rawClient.cosigner3,
-        cosigner4: !!rawClient.cosigner4
+        cosigner4: !!rawClient.cosigner4,
+        ...deceasedUpdates
       };
       if (key) existingByKey.set(key, id);
       if (existingIds.has(id)) {
