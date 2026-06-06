@@ -442,6 +442,106 @@
       font-weight: 850;
       width: 64px;
     }
+    .referral-table tbody tr {
+      cursor: pointer;
+    }
+    .referral-table tbody tr:hover {
+      background: rgba(245, 158, 11, 0.08);
+      box-shadow: inset 3px 0 0 rgba(245, 158, 11, 0.86);
+    }
+    .partner-drawer .drawer-head {
+      background:
+        radial-gradient(circle at 88% 0%, rgba(245, 158, 11, 0.18), transparent 32%),
+        linear-gradient(180deg, rgba(18, 28, 46, 0.98), rgba(14, 22, 37, 0.96));
+    }
+    .partner-kpis {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .partner-kpi {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 11px;
+      background: rgba(8, 13, 23, 0.56);
+    }
+    .partner-kpi strong {
+      display: block;
+      color: var(--text);
+      font-size: 1.05rem;
+      line-height: 1.15;
+      font-weight: 850;
+      overflow-wrap: anywhere;
+    }
+    .partner-kpi span {
+      display: block;
+      margin-top: 4px;
+      color: var(--faint);
+      font-size: 0.66rem;
+      font-weight: 800;
+      letter-spacing: 0.55px;
+      text-transform: uppercase;
+    }
+    .partner-deal-list {
+      display: grid;
+      gap: 10px;
+    }
+    .partner-deal-card {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px 14px;
+      background: rgba(8, 13, 23, 0.54);
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.14s, background 0.14s, transform 0.14s;
+    }
+    .partner-deal-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(56, 189, 248, 0.45);
+      background: rgba(56, 189, 248, 0.09);
+    }
+    .partner-deal-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .partner-deal-name {
+      color: var(--text);
+      font-weight: 850;
+      font-size: 0.96rem;
+      line-height: 1.25;
+    }
+    .partner-deal-address {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.35;
+    }
+    .partner-deal-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 11px;
+    }
+    .partner-deal-pill {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: rgba(148, 163, 184, 0.09);
+      color: #cbd5e1;
+      font-size: 0.7rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .partner-deal-pill.accent {
+      border-color: rgba(245, 158, 11, 0.32);
+      background: rgba(245, 158, 11, 0.14);
+      color: #fcd34d;
+    }
 
     .market-panel {
       display: grid;
@@ -700,6 +800,43 @@
       border-color: rgba(56, 189, 248, 0.72);
       box-shadow: 0 0 0 3px rgba(56,189,248,0.14);
     }
+    .referral-field { position: relative; z-index: 4; }
+    .referral-combobox { position: relative; }
+    .referral-combobox input { width: 100%; }
+    .referral-suggestions {
+      display: none;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 6px);
+      z-index: 320;
+      max-height: 230px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 5px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #0a1020;
+      box-shadow: 0 18px 48px rgba(0,0,0,0.38);
+    }
+    .referral-suggestions.open { display: grid; gap: 3px; }
+    .referral-suggestion {
+      width: 100%;
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 10px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      font: inherit;
+      font-size: 0.86rem;
+      cursor: pointer;
+    }
+    .referral-suggestion:hover,
+    .referral-suggestion.active {
+      background: rgba(56, 189, 248, 0.16);
+      color: #bae6fd;
+    }
 
     .form-grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; }
 
@@ -751,7 +888,8 @@
       flex-direction: column;
       animation: drawerIn 0.18s ease-out;
     }
-    #clientDrawerContent {
+    #clientDrawerContent,
+    #partnerDrawerContent {
       display: flex;
       flex-direction: column;
       height: 100%;
@@ -1144,6 +1282,13 @@
   </aside>
 </div>
 
+<!-- Referral Partner Drawer -->
+<div class="drawer-overlay" id="partnerDrawerOverlay">
+  <aside class="client-drawer partner-drawer" aria-label="Referral partner deals">
+    <div id="partnerDrawerContent"></div>
+  </aside>
+</div>
+
 <!-- Add / Edit Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
@@ -1248,39 +1393,54 @@
         <label>Closing Date</label>
         <input type="date" id="f-closing" />
       </div>
-      <div class="field">
+      <div class="field referral-field">
         <label>Referral Partner</label>
-        <input type="text" id="f-referral" list="referral-list" placeholder="Select or type partner name" autocomplete="off" />
+        <div class="referral-combobox">
+          <input
+            type="text"
+            id="f-referral"
+            placeholder="Select or type partner name"
+            autocomplete="off"
+            data-referral-input
+            aria-expanded="false"
+            onfocus="openReferralSuggestions(this)"
+            oninput="openReferralSuggestions(this)"
+            onkeydown="handleReferralSuggestionKeydown(event, this)"
+            onchange="normalizeReferralInput(this)"
+          />
+          <div class="referral-suggestions" data-referral-suggestions></div>
+        </div>
         <datalist id="referral-list">
-          <option value="SELF">
           <option value="Annie Veruno">
           <option value="Brandon Harrison">
           <option value="Brandy">
           <option value="Brett McCollough">
           <option value="Brett McCullough">
-          <option value="Clark">
+          <option value="Chase Craig">
+          <option value="Clark Bilyeu">
+          <option value="Easton Napiontek">
           <option value="Eric Nordberg">
           <option value="Heather Ferguson">
           <option value="Jacob Walsh">
-          <option value="Joe M">
+          <option value="Janet Gohlke">
+          <option value="Jerod Lee">
+          <option value="Joe Mueller">
           <option value="John Schoettger">
-          <option value="Kat">
           <option value="Kat Allaway">
-          <option value="Larissa">
+          <option value="Larisa Lekpek">
           <option value="Laura Stone">
           <option value="Marie Rouse">
+          <option value="Melissa Frietes (Past Client Referral)">
           <option value="Michael Poach">
-          <option value="Morey">
-          <option value="PC">
-          <option value="PC - Jerod">
-          <option value="PCR">
-          <option value="PCR - Melissa Frietes">
-          <option value="Randy D - Not using">
+          <option value="Morey Allaway">
+          <option value="Past Client Referral">
+          <option value="Randy Dusenbury">
           <option value="Riley Wilcox">
           <option value="Roland Corall">
           <option value="Ryan">
-          <option value="Tanner">
+          <option value="SELF">
           <option value="Tanner Fisher">
+          <option value="Tony Allen">
           <option value="Zillow">
         </datalist>
       </div>
@@ -1372,6 +1532,42 @@
 
   const FIREBASE_CONFIG_STORAGE_KEY = 'irmae_crm_firebase_config';
   const CLIENTS_PATH = 'clients';
+  const REFERRAL_CANONICAL_NAMES = {
+    self: 'SELF',
+    irma: 'SELF',
+    pc: 'SELF',
+    'pc - irma': 'SELF',
+    'pc - jerod': 'Jerod Lee',
+    'past client': 'SELF',
+    easton: 'Easton Napiontek',
+    'easton napiontek': 'Easton Napiontek',
+    larissa: 'Larisa Lekpek',
+    'larisa lekpek': 'Larisa Lekpek',
+    'randy d - not using': 'Randy Dusenbury',
+    'randy dusenbury': 'Randy Dusenbury',
+    pcr: 'Past Client Referral',
+    'past client referral': 'Past Client Referral',
+    'pcr - melissa frietes': 'Melissa Frietes (Past Client Referral)',
+    'melissa frietes (past client referral)': 'Melissa Frietes (Past Client Referral)',
+    'morey alloway': 'Morey Allaway',
+    'morey - not using': 'Morey Allaway',
+    clark: 'Clark Bilyeu',
+    'clark bilyeu': 'Clark Bilyeu',
+    'joe m': 'Joe Mueller',
+    'joe mueller': 'Joe Mueller',
+    'tony allen - not using': 'Tony Allen',
+    'tony allen': 'Tony Allen',
+    'janet gohlke - not using': 'Janet Gohlke',
+    'janet gohlke': 'Janet Gohlke',
+    chase: 'Chase Craig',
+    'chase craig': 'Chase Craig',
+    tanner: 'Tanner Fisher',
+    'tanner fisher': 'Tanner Fisher',
+    morey: 'Morey Allaway',
+    'morey allaway': 'Morey Allaway',
+    kat: 'Kat Allaway',
+    'kat allaway': 'Kat Allaway'
+  };
 
   let clients = [];
   let editingId = null;
@@ -1386,6 +1582,8 @@
   let auth = null;
   let currentUser = null;
   let listening = false;
+  let normalizingReferrals = false;
+  let baseReferralPartners = null;
   let marketRates = null;
   const REFI_SPREAD_THRESHOLD = 0.75;
 
@@ -1548,10 +1746,38 @@
   function normalizeIncomingClient(c) {
     return {
       ...c,
+      referral: cleanReferralName(c.referral),
       cosigner2: !!c.cosigner2,
       cosigner3: !!c.cosigner3,
       cosigner4: !!c.cosigner4
     };
+  }
+
+  async function syncCanonicalReferralNames(val) {
+    if (!db || !currentUser || normalizingReferrals || !val || typeof val !== 'object') return;
+
+    const updates = {};
+    Object.entries(val).forEach(([key, record]) => {
+      if (!record || typeof record !== 'object') return;
+      const original = String(record.referral || '').trim().replace(/\s+/g, ' ');
+      const canonical = cleanReferralName(record.referral);
+      if (original && canonical && original !== canonical) {
+        updates[CLIENTS_PATH + '/' + key + '/referral'] = canonical;
+      }
+    });
+
+    if (Object.keys(updates).length === 0) return;
+
+    normalizingReferrals = true;
+    try {
+      await db.ref().update(updates);
+      showBanner('Referral partner names normalized.');
+      setTimeout(hideBanner, 1800);
+    } catch (err) {
+      console.warn('Could not normalize referral partner names:', err);
+    } finally {
+      normalizingReferrals = false;
+    }
   }
 
   function startListening() {
@@ -1565,6 +1791,7 @@
         : [];
       hideBanner();
       renderTable();
+      syncCanonicalReferralNames(val);
     }, err => {
       showBanner('Firebase error: ' + err.message + '. Check Auth and Database Rules.', true);
     });
@@ -1592,8 +1819,157 @@
     return `${count} Loan${count === 1 ? '' : 's'}`;
   }
 
+  function referralAliasKey(value) {
+    return String(value || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/\s*-\s*/g, ' - ')
+      .toLowerCase();
+  }
+
+  function titleCaseAllCapsReferralName(name) {
+    const letters = name.replace(/[^A-Za-z]/g, '');
+    if (letters.length < 2 || /[a-z]/.test(name) || !/[A-Z]/.test(name)) return name;
+    return name.toLowerCase().replace(/\b[a-z]/g, ch => ch.toUpperCase());
+  }
+
   function cleanReferralName(value) {
-    return String(value || '').trim().replace(/\s+/g, ' ');
+    const name = String(value || '').trim().replace(/\s+/g, ' ');
+    return REFERRAL_CANONICAL_NAMES[referralAliasKey(name)] || titleCaseAllCapsReferralName(name);
+  }
+
+  function getBaseReferralPartners() {
+    if (!baseReferralPartners) {
+      baseReferralPartners = Array.from(document.querySelectorAll('#referral-list option'))
+        .map(option => cleanReferralName(option.value))
+        .filter(Boolean);
+    }
+    return baseReferralPartners;
+  }
+
+  function collectReferralPartnerSuggestions(extraValue = '') {
+    const partners = new Map();
+    const addPartner = value => {
+      const name = cleanReferralName(value);
+      if (!name) return;
+      partners.set(referralAliasKey(name), name);
+    };
+
+    getBaseReferralPartners().forEach(addPartner);
+    clients.forEach(c => addPartner(c.referral));
+    addPartner(extraValue);
+
+    return Array.from(partners.values()).sort((a, b) => a.localeCompare(b));
+  }
+
+  function renderReferralOptions(extraValue = '') {
+    const list = document.getElementById('referral-list');
+    if (!list) return;
+    list.innerHTML = collectReferralPartnerSuggestions(extraValue)
+      .map(name => `<option value="${esc(name)}">`)
+      .join('');
+  }
+
+  function referralSuggestionsForInput(input) {
+    const raw = input?.value || '';
+    const queryKey = referralAliasKey(raw);
+    const canonicalKey = referralAliasKey(cleanReferralName(raw));
+    const suggestions = collectReferralPartnerSuggestions(raw);
+    if (!queryKey) return suggestions;
+
+    return suggestions.filter(name => {
+      const key = referralAliasKey(name);
+      return key.includes(queryKey) || key === canonicalKey;
+    });
+  }
+
+  function referralSuggestionPanel(input) {
+    return input?.closest('.referral-combobox')?.querySelector('[data-referral-suggestions]');
+  }
+
+  function setActiveReferralSuggestion(panel, index) {
+    const buttons = Array.from(panel.querySelectorAll('.referral-suggestion'));
+    if (!buttons.length) return;
+    const next = Math.max(0, Math.min(index, buttons.length - 1));
+    buttons.forEach((button, i) => button.classList.toggle('active', i === next));
+    buttons[next].scrollIntoView({ block: 'nearest' });
+  }
+
+  function openReferralSuggestions(input) {
+    const panel = referralSuggestionPanel(input);
+    if (!panel) return;
+
+    renderReferralOptions(input.value);
+    const suggestions = referralSuggestionsForInput(input);
+    panel.innerHTML = suggestions
+      .map((name, index) => `
+        <button
+          type="button"
+          class="referral-suggestion${index === 0 ? ' active' : ''}"
+          data-referral-value="${esc(name)}"
+          onmousedown="selectReferralSuggestion(this); event.preventDefault();">
+          ${esc(name)}
+        </button>
+      `)
+      .join('');
+
+    panel.classList.toggle('open', suggestions.length > 0);
+    input.setAttribute('aria-expanded', String(suggestions.length > 0));
+  }
+
+  function closeReferralSuggestions(input) {
+    const panel = referralSuggestionPanel(input);
+    if (panel) panel.classList.remove('open');
+    input?.setAttribute('aria-expanded', 'false');
+  }
+
+  function closeAllReferralSuggestions() {
+    document.querySelectorAll('[data-referral-input]').forEach(input => closeReferralSuggestions(input));
+  }
+
+  function selectReferralSuggestion(button) {
+    const combo = button.closest('.referral-combobox');
+    const input = combo?.querySelector('[data-referral-input]');
+    if (!input) return;
+    input.value = cleanReferralName(button.dataset.referralValue || button.textContent);
+    renderReferralOptions(input.value);
+    closeReferralSuggestions(input);
+    input.focus();
+  }
+
+  function handleReferralSuggestionKeydown(e, input) {
+    const panel = referralSuggestionPanel(input);
+    const buttons = panel ? Array.from(panel.querySelectorAll('.referral-suggestion')) : [];
+    const isOpen = !!panel?.classList.contains('open');
+
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!isOpen) {
+        openReferralSuggestions(input);
+        return;
+      }
+      const activeIndex = Math.max(0, buttons.findIndex(button => button.classList.contains('active')));
+      setActiveReferralSuggestion(panel, activeIndex + (e.key === 'ArrowDown' ? 1 : -1));
+    }
+
+    if (e.key === 'Enter' && isOpen) {
+      const active = panel.querySelector('.referral-suggestion.active');
+      if (active) {
+        e.preventDefault();
+        selectReferralSuggestion(active);
+      }
+    }
+
+    if (e.key === 'Escape') {
+      closeReferralSuggestions(input);
+    }
+  }
+
+  function normalizeReferralInput(input) {
+    if (!input) return;
+    input.value = cleanReferralName(input.value);
+    renderReferralOptions(input.value);
+    closeReferralSuggestions(input);
   }
 
   function getReferralPartnerStats(sourceClients = clients) {
@@ -1623,6 +1999,18 @@
     return Array.from(partnerMap.values())
       .sort((a, b) => b.count - a.count || b.volume - a.volume || a.name.localeCompare(b.name))
       .map((row, index) => ({ ...row, rank: index + 1 }));
+  }
+
+  function clientsForReferralPartner(partnerName, sourceClients = getFilteredClients()) {
+    const partnerKey = referralAliasKey(partnerName);
+    return sourceClients
+      .filter(c => referralAliasKey(cleanReferralName(c.referral)) === partnerKey)
+      .sort((a, b) => {
+        if (!a.closing && !b.closing) return primaryBorrower(a).localeCompare(primaryBorrower(b));
+        if (!a.closing) return 1;
+        if (!b.closing) return -1;
+        return String(b.closing).localeCompare(String(a.closing));
+      });
   }
 
   function closingYear(c) {
@@ -1840,6 +2228,28 @@
       </label>`;
   }
 
+  function drawerReferralField(value) {
+    return `
+      <label class="drawer-field referral-field full">
+        <span>Referral Partner</span>
+        <div class="referral-combobox">
+          <input
+            id="drawer-referral"
+            type="text"
+            value="${esc(value)}"
+            autocomplete="off"
+            data-referral-input
+            aria-expanded="false"
+            onfocus="openReferralSuggestions(this)"
+            oninput="openReferralSuggestions(this)"
+            onkeydown="handleReferralSuggestionKeydown(event, this)"
+            onchange="normalizeReferralInput(this)"
+          />
+          <div class="referral-suggestions" data-referral-suggestions></div>
+        </div>
+      </label>`;
+  }
+
   function drawerCheckboxField(label, field, checked = false) {
     return `
       <label class="drawer-field">
@@ -1892,7 +2302,7 @@
       cell2: drawerValue('cell2'),
       email2: drawerValue('email2'),
       birthday2: drawerValue('birthday2'),
-      referral: drawerValue('referral'),
+      referral: cleanReferralName(drawerValue('referral')),
       updatedAt: Date.now()
     };
 
@@ -1994,6 +2404,7 @@
   function openReferralPartnersPage() {
     showReferralPreview = false;
     closeClientDrawer();
+    closePartnerDrawer();
     document.getElementById('dashboardView').hidden = true;
     document.getElementById('referralPartnersView').hidden = false;
     renderReferralPartnersPage(getReferralPartnerStats(getFilteredClients()));
@@ -2001,6 +2412,7 @@
   }
 
   function closeReferralPartnersPage() {
+    closePartnerDrawer();
     document.getElementById('referralPartnersView').hidden = true;
     document.getElementById('dashboardView').hidden = false;
     updateStats();
@@ -2021,6 +2433,16 @@
 
     rows.forEach(row => {
       const tr = document.createElement('tr');
+      tr.tabIndex = 0;
+      tr.setAttribute('role', 'button');
+      tr.setAttribute('aria-label', `View deals for ${row.name}`);
+      tr.addEventListener('click', () => openPartnerDrawer(row.name));
+      tr.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openPartnerDrawer(row.name);
+        }
+      });
       tr.innerHTML = `
         <td class="rank-cell">#${row.rank}</td>
         <td><div class="primary">${esc(row.name)}</div></td>
@@ -2030,6 +2452,79 @@
         <td>${row.refis}</td>`;
       body.appendChild(tr);
     });
+  }
+
+  function partnerDealCard(c) {
+    const loanType = prLabel(c.pr) || 'Loan';
+    const closing = fmtDate(c.closing);
+    const address = fullAddress(c) || 'No property address';
+    return `
+      <button class="partner-deal-card" onclick="openClientFromPartnerDeal(${esc(JSON.stringify(c.id || ''))})" type="button">
+        <div class="partner-deal-top">
+          <div>
+            <div class="partner-deal-name">${esc(primaryBorrower(c))}</div>
+            <div class="partner-deal-address">${esc(address)}</div>
+          </div>
+          ${prBadge(c.pr)}
+        </div>
+        <div class="partner-deal-meta">
+          <span class="partner-deal-pill accent">${fmt$(c.loanamt)}</span>
+          <span class="partner-deal-pill">${esc(c.program) || 'Program n/a'}</span>
+          <span class="partner-deal-pill">${fmtRate(c.rate)}</span>
+          <span class="partner-deal-pill">${esc(closing)}</span>
+          <span class="partner-deal-pill">${esc(loanType)}</span>
+        </div>
+      </button>`;
+  }
+
+  function openPartnerDrawer(partnerName) {
+    const partnerClients = clientsForReferralPartner(partnerName);
+    const stats = getReferralPartnerStats(getFilteredClients()).find(row => referralAliasKey(row.name) === referralAliasKey(partnerName)) || {
+      name: cleanReferralName(partnerName),
+      count: partnerClients.length,
+      volume: partnerClients.reduce((sum, c) => sum + (parseFloat(c.loanamt) || 0), 0),
+      purchases: partnerClients.filter(c => c.pr === 'P').length,
+      refis: partnerClients.filter(c => c.pr === 'R').length
+    };
+
+    const content = document.getElementById('partnerDrawerContent');
+    const scope = activeYearFilter === 'all' ? 'Current dashboard view' : `${activeYearFilter} closings`;
+    content.innerHTML = `
+      <div class="drawer-head">
+        <div class="drawer-eyebrow">Referral Partner</div>
+        <div class="drawer-title">${esc(stats.name)}</div>
+        <div class="drawer-subtitle">${esc(scope)} · ${loanCountLabel(stats.count)}</div>
+        <div class="partner-kpis">
+          <div class="partner-kpi"><strong>${loanCountLabel(stats.count)}</strong><span>Deals</span></div>
+          <div class="partner-kpi"><strong>${fmtCompactMoney(stats.volume)}</strong><span>Volume</span></div>
+          <div class="partner-kpi"><strong>${stats.purchases}</strong><span>Purchases</span></div>
+          <div class="partner-kpi"><strong>${stats.refis}</strong><span>Refinances</span></div>
+        </div>
+      </div>
+      <div class="drawer-body">
+        <div class="detail-section">
+          <h3>Associated Deals</h3>
+          <div class="partner-deal-list">
+            ${partnerClients.length
+              ? partnerClients.map(partnerDealCard).join('')
+              : `<div class="empty-state" style="padding:22px 0"><p>No deals match the current view.</p></div>`}
+          </div>
+        </div>
+      </div>
+      <div class="drawer-actions">
+        <button class="btn btn-cancel" onclick="closePartnerDrawer()">Close</button>
+      </div>`;
+    document.getElementById('partnerDrawerOverlay').classList.add('open');
+  }
+
+  function closePartnerDrawer() {
+    document.getElementById('partnerDrawerOverlay').classList.remove('open');
+    document.getElementById('partnerDrawerContent').innerHTML = '';
+  }
+
+  function openClientFromPartnerDeal(id) {
+    closePartnerDrawer();
+    openClientDrawer(id);
   }
 
   function renderClientDrawer() {
@@ -2138,7 +2633,7 @@
         <div class="detail-section">
           <h3>Referral Source</h3>
           <div class="detail-grid">
-            ${drawerInputField('Referral Partner', 'referral', c.referral, 'text', 'list="referral-list" autocomplete="off"', true)}
+            ${drawerReferralField(c.referral)}
           </div>
         </div>
       </div>
@@ -2247,6 +2742,7 @@
     const body = document.getElementById('clientTableBody');
     const empty = document.getElementById('emptyState');
 
+    renderReferralOptions();
     renderYearFilters();
     const filtered = getFilteredClients();
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -2365,6 +2861,7 @@
 
   function openModal(id) {
     editingId = id || null;
+    renderReferralOptions();
     document.getElementById('modalTitle').textContent = id ? 'Edit Client' : 'Add New Client';
     FIELDS.forEach(f => { document.getElementById('f-' + f).value = ''; });
 
@@ -2408,6 +2905,8 @@
 
     const data = {};
     FIELDS.forEach(f => { data[f] = document.getElementById('f-' + f).value.trim(); });
+    data.referral = cleanReferralName(data.referral);
+    renderReferralOptions(data.referral);
 
     data.cosigner2 = document.getElementById('f-cosigner2').checked;
     data.cosigner3 = document.getElementById('f-cosigner3').checked;
@@ -2765,7 +3264,7 @@
     setImportField(client, 'salesprice', normalizeImportNumber(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.salesprice)));
     setImportField(client, 'loanamt', normalizeImportNumber(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.loanamt)));
     setImportField(client, 'closing', normalizeImportDate(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.closing)));
-    setImportField(client, 'referral', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.referral));
+    setImportField(client, 'referral', cleanReferralName(importValue(row, headerKeys, IMPORT_FIELD_ALIASES.referral)));
     setImportField(client, 'address', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.address));
     setImportField(client, 'city', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.city));
     setImportField(client, 'state', normalizeImportState(importValue(row, headerKeys, IMPORT_FIELD_ALIASES.state)));
@@ -2894,19 +3393,21 @@
 
     imported.forEach(raw => {
       if (!raw || typeof raw !== 'object') return;
-      const key = clientImportKey(raw);
-      const id = raw.id || (key ? existingByKey.get(key) : '') || uid();
+      const rawClient = { ...raw };
+      if ('referral' in rawClient) rawClient.referral = cleanReferralName(rawClient.referral);
+      const key = clientImportKey(rawClient);
+      const id = rawClient.id || (key ? existingByKey.get(key) : '') || uid();
       const existing = clients.find(client => client.id === id) || {};
       const now = Date.now();
       updates[CLIENTS_PATH + '/' + id] = {
         ...existing,
-        ...raw,
+        ...rawClient,
         id,
-        createdAt: raw.createdAt || existing.createdAt || now,
+        createdAt: rawClient.createdAt || existing.createdAt || now,
         updatedAt: now,
-        cosigner2: !!raw.cosigner2,
-        cosigner3: !!raw.cosigner3,
-        cosigner4: !!raw.cosigner4
+        cosigner2: !!rawClient.cosigner2,
+        cosigner3: !!rawClient.cosigner3,
+        cosigner4: !!rawClient.cosigner4
       };
       if (key) existingByKey.set(key, id);
       if (existingIds.has(id)) {
@@ -3009,6 +3510,9 @@
   document.getElementById('clientDrawerOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeClientDrawer();
   });
+  document.getElementById('partnerDrawerOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closePartnerDrawer();
+  });
   document.getElementById('refiWatchCard').addEventListener('keydown', function(e) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -3023,12 +3527,15 @@
   });
   document.addEventListener('click', e => {
     if (!e.target.closest('.utility-menu')) closeActionMenu();
+    if (!e.target.closest('.referral-combobox')) closeAllReferralSuggestions();
   });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
+      closeAllReferralSuggestions();
       closeModal();
       closeConfirm();
       closeClientDrawer();
+      closePartnerDrawer();
       closeActionMenu();
       if (!document.getElementById('referralPartnersView').hidden) closeReferralPartnersPage();
     }
