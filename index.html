@@ -791,6 +791,8 @@
     .badge-conv { background: rgba(139, 92, 246, 0.16); color: #c4b5fd; border-color: rgba(139, 92, 246, 0.32); }
     .badge-usda { background: rgba(245, 158, 11, 0.16); color: #fcd34d; border-color: rgba(245, 158, 11, 0.32); }
     .badge-jumbo{ background: rgba(239, 68, 68, 0.16); color: #fca5a5; border-color: rgba(239, 68, 68, 0.32); }
+    .badge-heloc{ background: rgba(20, 184, 166, 0.16); color: #5eead4; border-color: rgba(20, 184, 166, 0.32); }
+    .badge-2ndmtg{ background: rgba(244, 114, 182, 0.16); color: #f9a8d4; border-color: rgba(244, 114, 182, 0.32); }
     .badge-other{ background: rgba(148, 163, 184, 0.14); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.26); }
     .badge.badge-deceased {
       background: #ffffff;
@@ -1102,6 +1104,8 @@
     .drawer-field select.badge-select.badge-conv { background: rgba(139, 92, 246, 0.16); color: #c4b5fd; border-color: rgba(139, 92, 246, 0.32); }
     .drawer-field select.badge-select.badge-usda { background: rgba(245, 158, 11, 0.16); color: #fcd34d; border-color: rgba(245, 158, 11, 0.32); }
     .drawer-field select.badge-select.badge-jumbo { background: rgba(239, 68, 68, 0.16); color: #fca5a5; border-color: rgba(239, 68, 68, 0.32); }
+    .drawer-field select.badge-select.badge-heloc { background: rgba(20, 184, 166, 0.16); color: #5eead4; border-color: rgba(20, 184, 166, 0.32); }
+    .drawer-field select.badge-select.badge-2ndmtg { background: rgba(244, 114, 182, 0.16); color: #f9a8d4; border-color: rgba(244, 114, 182, 0.32); }
     .drawer-field select.badge-select.badge-other { background: rgba(148, 163, 184, 0.14); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.26); }
     .drawer-actions {
       display: flex;
@@ -1485,6 +1489,8 @@
           <option value="VA">VA</option>
           <option value="USDA">USDA</option>
           <option value="Jumbo">Jumbo</option>
+          <option value="HELOC">HELOC</option>
+          <option value="2nd Mortgage">2nd Mortgage</option>
           <option value="Other">Other</option>
         </select>
       </div>
@@ -2315,6 +2321,8 @@
     if (text.includes('conv') || text.includes('conventional')) return 'badge-conv';
     if (text.includes('usda')) return 'badge-usda';
     if (text.includes('jumbo')) return 'badge-jumbo';
+    if (text.includes('heloc')) return 'badge-heloc';
+    if (text.includes('2nd') || text.includes('second')) return 'badge-2ndmtg';
     return 'badge-other';
   }
 
@@ -2699,6 +2707,8 @@
       { value: 'VA', label: 'VA' },
       { value: 'USDA', label: 'USDA' },
       { value: 'Jumbo', label: 'Jumbo' },
+      { value: 'HELOC', label: 'HELOC' },
+      { value: '2nd Mortgage', label: '2nd Mortgage' },
       { value: 'Other', label: 'Other' }
     ];
 
