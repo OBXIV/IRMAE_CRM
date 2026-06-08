@@ -54,6 +54,7 @@
       width: auto;
       max-width: min(360px, 58vw);
       border-radius: 6px;
+      cursor: pointer;
       box-shadow: none;
     }
     header span { font-size: 0.82rem; color: #64748b; position: absolute; right: 32px; }
@@ -181,10 +182,15 @@
       align-items: center;
     }
 
-    .search-input {
+    .search-wrap {
       flex: 1;
       min-width: 220px;
-      padding: 12px 15px;
+      position: relative;
+      display: flex;
+    }
+    .search-input {
+      width: 100%;
+      padding: 12px 40px 12px 15px;
       border: 1px solid var(--line);
       border-radius: 8px;
       font-size: 0.95rem;
@@ -195,6 +201,23 @@
     }
     .search-input::placeholder { color: var(--faint); }
     .search-input:focus { border-color: rgba(56, 189, 248, 0.72); box-shadow: 0 0 0 3px rgba(56,189,248,0.14); }
+    .search-clear {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      color: var(--faint);
+      font-size: 1.35rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .search-clear:hover { color: var(--text); background: rgba(148, 163, 184, 0.16); }
+    .search-clear[hidden] { display: none; }
 
     .btn {
       padding: 10px 18px;
@@ -1147,7 +1170,7 @@
         grid-template-columns: 1fr auto;
         gap: 10px;
       }
-      .search-input {
+      .search-wrap {
         grid-column: 1 / -1;
         min-width: 0;
         width: 100%;
@@ -1221,7 +1244,7 @@
 <div class="sync-banner" id="syncBanner"></div>
 
 <header>
-  <img class="brand-logo" src="assets/irmae-crm-logo.png" alt="IRMAE CRM" />
+  <img class="brand-logo" src="assets/irmae-crm-logo.png" alt="IRMAE CRM" role="button" tabindex="0" title="Back to dashboard" onclick="goHome()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goHome();}" />
   <span id="header-date"></span>
 </header>
 
@@ -1229,7 +1252,10 @@
 
   <section class="page-view" id="dashboardView">
   <div class="topbar">
-    <input class="search-input" type="text" id="searchInput" placeholder="Search by borrower, address, city, referral partner, program…" oninput="handleSearchInput()" />
+    <div class="search-wrap">
+      <input class="search-input" type="text" id="searchInput" placeholder="Search by borrower, address, city, referral partner, program…" oninput="handleSearchInput()" />
+      <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search" title="Clear search" hidden>&times;</button>
+    </div>
     <button class="btn btn-primary" onclick="openModal()">+ Add Client</button>
     <span id="currentUserEmail" style="font-size:0.82rem;color:#93a4b8;font-weight:600"></span>
     <div class="utility-menu">
@@ -2812,8 +2838,30 @@
   }
 
   function handleSearchInput() {
+    const input = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('searchClear');
+    if (clearBtn) clearBtn.hidden = !(input && input.value);
     currentPage = 1;
     renderTable();
+  }
+
+  function clearSearch() {
+    const input = document.getElementById('searchInput');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+    handleSearchInput();
+  }
+
+  function goHome() {
+    closeClientDrawer();
+    if (typeof closePartnerDrawer === 'function') closePartnerDrawer();
+    const referralView = document.getElementById('referralPartnersView');
+    if (referralView && !referralView.hidden) {
+      closeReferralPartnersPage();
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function setYearFilter(year) {
