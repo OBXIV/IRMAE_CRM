@@ -816,6 +816,7 @@
     .badge-jumbo{ background: rgba(239, 68, 68, 0.16); color: #fca5a5; border-color: rgba(239, 68, 68, 0.32); }
     .badge-heloc{ background: rgba(20, 184, 166, 0.16); color: #5eead4; border-color: rgba(20, 184, 166, 0.32); }
     .badge-2ndmtg{ background: rgba(244, 114, 182, 0.16); color: #f9a8d4; border-color: rgba(244, 114, 182, 0.32); }
+    .badge-aio { background: rgba(14, 165, 233, 0.16); color: #7dd3fc; border-color: rgba(14, 165, 233, 0.32); }
     .badge-other{ background: rgba(148, 163, 184, 0.14); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.26); }
     .badge.badge-deceased {
       background: #ffffff;
@@ -1307,7 +1308,7 @@
     <div class="market-card watch" id="refiWatchCard" onclick="toggleRefiFilter()" role="button" tabindex="0">
       <div class="rate-value" id="refiWatchCount">0</div>
       <div class="rate-label">Refi Watch</div>
-      <div class="rate-note" id="refiWatchNote">Loans at least 0.75% above current 30-yr rate.</div>
+      <div class="rate-note" id="refiWatchNote">Loans above rate threshold or AIO-3YR 3+ years from closing.</div>
     </div>
   </div>
 
@@ -1517,6 +1518,7 @@
           <option value="Jumbo">Jumbo</option>
           <option value="HELOC">HELOC</option>
           <option value="2nd Mortgage">2nd Mortgage</option>
+          <option value="AIO-3YR">AIO-3YR</option>
           <option value="Other">Other</option>
         </select>
       </div>
@@ -1677,6 +1679,7 @@
   };
 
   const FIREBASE_CONFIG_STORAGE_KEY = 'irmae_crm_firebase_config';
+  const AUTH_REDIRECT_PENDING_KEY = 'irmae_crm_google_redirect_pending';
   const CLIENTS_PATH = 'clients';
   const REFERRAL_CANONICAL_NAMES = {
     self: 'Self',
@@ -1738,7 +1741,10 @@
   let normalizingReferrals = false;
   let baseReferralPartners = null;
   let marketRates = null;
+  let resolvingAuthRedirect = false;
+  let authPersistenceReady = Promise.resolve();
   const REFI_SPREAD_THRESHOLD = 0.75;
+  const AIO_REFI_WATCH_YEARS = 3;
 
   function isLocalReferralPreview() {
     const localHosts = ['localhost', '127.0.0.1', '::1'];
@@ -1759,7 +1765,7 @@
       ['Ernesto', 'Arceo'], ['Maya', 'Collins'], ['Derek', 'Walsh'], ['Sofia', 'Hayes'],
       ['Nolan', 'Reed'], ['Isabella', 'Parker'], ['Carter', 'Brooks'], ['Avery', 'Mills']
     ];
-    const programs = ['Conventional', 'FHA', 'VA', 'Jumbo'];
+    const programs = ['Conventional', 'FHA', 'VA', 'Jumbo', 'AIO-3YR'];
     const propertyTypes = ['O', 'O', 'IP', '2nd'];
 
     return partners.flatMap((partner, partnerIndex) => {
@@ -1836,6 +1842,27 @@
     document.getElementById('loginError').classList.remove('show');
   }
 
+  function markAuthRedirectPending() {
+    try { localStorage.setItem(AUTH_REDIRECT_PENDING_KEY, '1'); } catch {}
+  }
+
+  function clearAuthRedirectPending() {
+    try { localStorage.removeItem(AUTH_REDIRECT_PENDING_KEY); } catch {}
+  }
+
+  function hasAuthRedirectPending() {
+    try { return localStorage.getItem(AUTH_REDIRECT_PENDING_KEY) === '1'; } catch { return false; }
+  }
+
+  function showRedirectSessionErrorIfNeeded() {
+    setTimeout(() => {
+      if (auth?.currentUser || currentUser || !hasAuthRedirectPending()) return;
+      clearAuthRedirectPending();
+      showLoginError('Google sign-in returned, but Firebase did not create a session. If this is the Codex in-app browser, open http://localhost:8064/ in Chrome and sign in there.');
+      document.getElementById('loginOverlay').classList.add('open');
+    }, 1800);
+  }
+
   function saveFirebaseConfig() {
     const config = parseFirebaseConfig(document.getElementById('configInput').value.trim());
     if (!config || !config.apiKey || !config.databaseURL) {
@@ -1866,10 +1893,37 @@
     if (!firebase.apps.length) firebase.initializeApp(config);
     db = firebase.database();
     auth = firebase.auth();
+    authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => {
+      console.warn('Could not set Firebase auth persistence:', err);
+    });
+
+    resolvingAuthRedirect = true;
+    auth.getRedirectResult()
+      .then(result => {
+        if (result?.user) {
+          clearAuthRedirectPending();
+          clearLoginError();
+        } else if (hasAuthRedirectPending()) {
+          showRedirectSessionErrorIfNeeded();
+        }
+      })
+      .catch(err => {
+        clearAuthRedirectPending();
+        showLoginError(err.message || 'Login failed.');
+      })
+      .finally(() => {
+        resolvingAuthRedirect = false;
+        if (!auth.currentUser && !currentUser) {
+          document.getElementById('loginOverlay').classList.add('open');
+        }
+      });
 
     auth.onAuthStateChanged(user => {
+      if (!user && resolvingAuthRedirect) return;
       currentUser = user;
       if (user) {
+        clearAuthRedirectPending();
+        clearLoginError();
         document.getElementById('currentUserEmail').textContent = user.email ? `Signed in: ${user.email}` : '';
         document.getElementById('loginOverlay').classList.remove('open');
         startListening();
@@ -1889,7 +1943,30 @@
   function loginWithGoogle() {
     clearLoginError();
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(err => showLoginError(err.message || 'Login failed.'));
+    authPersistenceReady
+      .then(() => auth.signInWithPopup(provider))
+      .then(() => {
+        clearAuthRedirectPending();
+        clearLoginError();
+      })
+      .catch(err => {
+        const code = err?.code || '';
+        const shouldFallbackToRedirect = [
+          'auth/popup-blocked',
+          'auth/operation-not-supported-in-this-environment'
+        ].includes(code);
+
+        if (shouldFallbackToRedirect) {
+          markAuthRedirectPending();
+          return auth.signInWithRedirect(provider).catch(redirectErr => {
+            clearAuthRedirectPending();
+            showLoginError(redirectErr.message || 'Login failed.');
+          });
+        }
+
+        clearAuthRedirectPending();
+        showLoginError(err.message || 'Login failed.');
+      });
   }
 
   function logout() {
@@ -2247,10 +2324,67 @@
     return `${m}/${day}/${y}`;
   }
 
-  function shouldFlagRefi(c) {
+  function parseIsoLocalDate(value) {
+    const match = String(value || '').trim().match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (!match) return null;
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    if (
+      Number.isNaN(date.getTime()) ||
+      date.getFullYear() !== Number(match[1]) ||
+      date.getMonth() !== Number(match[2]) - 1 ||
+      date.getDate() !== Number(match[3])
+    ) return null;
+    return date;
+  }
+
+  function isAioProgram(program) {
+    return String(program || '').toLowerCase().includes('aio');
+  }
+
+  function isRateRefiWatch(c) {
     if (!marketRates?.thirtyYear?.rate || !c.rate) return false;
     const clientRate = parseFloat(c.rate);
     return !isNaN(clientRate) && clientRate >= marketRates.thirtyYear.rate + REFI_SPREAD_THRESHOLD;
+  }
+
+  function isAioRefiWatch(c) {
+    if (!isAioProgram(c.program)) return false;
+    const closingDate = parseIsoLocalDate(c.closing);
+    if (!closingDate) return false;
+    const watchDate = new Date(closingDate);
+    watchDate.setFullYear(watchDate.getFullYear() + AIO_REFI_WATCH_YEARS);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return watchDate <= today;
+  }
+
+  function shouldFlagRefi(c) {
+    return isRateRefiWatch(c) || isAioRefiWatch(c);
+  }
+
+  function refiWatchReason(c) {
+    const reasons = [];
+    if (isRateRefiWatch(c)) {
+      reasons.push(`Client rate is at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above the current 30-year national average`);
+    }
+    if (isAioRefiWatch(c)) {
+      reasons.push(`AIO loan is ${AIO_REFI_WATCH_YEARS}+ years past closing`);
+    }
+    return reasons.join(' and ') || 'Refi Watch';
+  }
+
+  function refiWatchBadge(c) {
+    return shouldFlagRefi(c)
+      ? `<span class="badge refi-badge" title="${esc(refiWatchReason(c))}">Refi Watch</span>`
+      : '';
+  }
+
+  function refiWatchNoteText(filtered = false) {
+    const rateText = marketRates?.thirtyYear?.rate
+      ? `loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above ${marketRates.thirtyYear.rate.toFixed(2)}%`
+      : `loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above current 30-yr rate`;
+    const aioText = `AIO loans ${AIO_REFI_WATCH_YEARS}+ years from closing`;
+    return `${filtered ? 'Filtered to ' : ''}${rateText} or ${aioText}.`;
   }
 
   async function loadMortgageRates() {
@@ -2349,6 +2483,7 @@
     if (text.includes('jumbo')) return 'badge-jumbo';
     if (text.includes('heloc')) return 'badge-heloc';
     if (text.includes('2nd') || text.includes('second')) return 'badge-2ndmtg';
+    if (text.includes('aio')) return 'badge-aio';
     return 'badge-other';
   }
 
@@ -2713,7 +2848,7 @@
       propBadge(c.proptype),
       prBadge(c.pr),
       programBadge(c.program),
-      shouldFlagRefi(c) ? `<span class="badge refi-badge">Refi Watch</span>` : ''
+      refiWatchBadge(c)
     ].filter(x => x && x !== '—').join('');
     const propertyOptions = [
       { value: '', label: 'Select property type' },
@@ -2735,6 +2870,7 @@
       { value: 'Jumbo', label: 'Jumbo' },
       { value: 'HELOC', label: 'HELOC' },
       { value: '2nd Mortgage', label: '2nd Mortgage' },
+      { value: 'AIO-3YR', label: 'AIO-3YR' },
       { value: 'Other', label: 'Other' }
     ];
 
@@ -2980,7 +3116,7 @@
         const secondaryBorrowers = borrowerRows.slice(1);
         const address = fullAddress(c);
         const loanLine = [prLabel(c.pr), c.program].filter(Boolean).join(' / ');
-        const refiTag = shouldFlagRefi(c) ? `<span class="badge refi-badge" title="Client rate is at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above the current 30-year national average">Refi Watch</span>` : '';
+        const refiTag = refiWatchBadge(c);
         const statusBadges = [propBadge(c.proptype), prBadge(c.pr), refiTag].filter(x => x && x !== '—').join('');
         tr.innerHTML = `
           <td>
@@ -3057,13 +3193,7 @@
     const refiWatch = getFilteredClients({ includeRefi: false }).filter(shouldFlagRefi).length;
     document.getElementById('refiWatchCount').textContent = refiWatch;
     document.getElementById('refiWatchCard').classList.toggle('active', showRefiOnly);
-    document.getElementById('refiWatchNote').textContent = marketRates?.thirtyYear?.rate
-      ? (showRefiOnly
-        ? `Filtered to loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above ${marketRates.thirtyYear.rate.toFixed(2)}%.`
-        : `Loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above ${marketRates.thirtyYear.rate.toFixed(2)}%.`)
-      : (showRefiOnly
-        ? `Filtered to loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above current 30-yr rate.`
-        : `Loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above current 30-yr rate.`);
+    document.getElementById('refiWatchNote').textContent = refiWatchNoteText(showRefiOnly);
   }
 
   // ── Modal ────────────────────────────────────────────────
@@ -3820,11 +3950,20 @@
   }
 
   // ── Init ─────────────────────────────────────────────────
+  function normalizeLocalAuthOrigin() {
+    if (location.hostname !== '127.0.0.1') return false;
+    const port = location.port ? `:${location.port}` : '';
+    location.replace(`${location.protocol}//localhost${port}${location.pathname}${location.search}${location.hash}`);
+    return true;
+  }
+
   document.getElementById('header-date').textContent =
     new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
-  loadMortgageRates();
-  initFirebase();
+  if (!normalizeLocalAuthOrigin()) {
+    loadMortgageRates();
+    initFirebase();
+  }
 </script>
 </body>
 </html>
