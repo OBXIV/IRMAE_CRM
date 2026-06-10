@@ -2544,6 +2544,58 @@
     return [c.address, cityLine].filter(Boolean).join(', ');
   }
 
+  const STREET_DIRECTION_ALIASES = {
+    n: 'n',
+    north: 'n',
+    s: 's',
+    south: 's',
+    e: 'e',
+    east: 'e',
+    w: 'w',
+    west: 'w',
+    ne: 'ne',
+    northeast: 'ne',
+    nw: 'nw',
+    northwest: 'nw',
+    se: 'se',
+    southeast: 'se',
+    sw: 'sw',
+    southwest: 'sw'
+  };
+
+  const STREET_TYPE_ALIASES = {
+    street: 'st',
+    st: 'st',
+    avenue: 'ave',
+    ave: 'ave',
+    road: 'rd',
+    rd: 'rd',
+    boulevard: 'blvd',
+    blvd: 'blvd',
+    drive: 'dr',
+    dr: 'dr',
+    lane: 'ln',
+    ln: 'ln',
+    court: 'ct',
+    ct: 'ct',
+    place: 'pl',
+    pl: 'pl',
+    circle: 'cir',
+    cir: 'cir',
+    terrace: 'ter',
+    ter: 'ter',
+    trail: 'trl',
+    trl: 'trl',
+    highway: 'hwy',
+    hwy: 'hwy',
+    parkway: 'pkwy',
+    pkwy: 'pkwy',
+    way: 'way',
+    loop: 'loop'
+  };
+
+  const STREET_UNIT_MARKERS = new Set(['unit', 'apt', 'apartment', 'suite', 'ste', 'lot', 'space', 'bldg', 'building']);
+
   function normalizeHistoryKey(value) {
     return String(value || '')
       .toLowerCase()
@@ -2551,9 +2603,78 @@
       .replace(/[^a-z0-9]+/g, '');
   }
 
-  function propertyHistoryKey(c) {
-    if (!String(c.address || '').trim()) return '';
-    return normalizeHistoryKey([c.address, c.city, c.state, c.zip].filter(Boolean).join('|'));
+  function addressTokens(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(token => STREET_DIRECTION_ALIASES[token] || STREET_TYPE_ALIASES[token] || token);
+  }
+
+  function parseStreetAddress(address) {
+    const tokens = addressTokens(address);
+    if (!tokens.length || !/^\d+[a-z]?$/.test(tokens[0])) return null;
+
+    const houseNumber = tokens[0];
+    let rest = tokens.slice(1);
+    const unitIndex = rest.findIndex(token => STREET_UNIT_MARKERS.has(token));
+    if (unitIndex >= 0) rest = rest.slice(0, unitIndex);
+
+    let direction = '';
+    if (rest.length && STREET_DIRECTION_ALIASES[rest[0]]) {
+      direction = rest.shift();
+    }
+
+    let trailingDirection = '';
+    if (rest.length && STREET_DIRECTION_ALIASES[rest[rest.length - 1]]) {
+      trailingDirection = rest.pop();
+    }
+
+    let type = '';
+    if (rest.length && STREET_TYPE_ALIASES[rest[rest.length - 1]]) {
+      type = rest.pop();
+    }
+
+    const name = rest.join('');
+    if (!name) return null;
+
+    return {
+      houseNumber,
+      direction: direction || trailingDirection,
+      name,
+      type
+    };
+  }
+
+  function streetAddressesMatch(a, b) {
+    const aParsed = parseStreetAddress(a.address);
+    const bParsed = parseStreetAddress(b.address);
+    if (!aParsed || !bParsed) {
+      const aAddress = normalizeHistoryKey(a.address);
+      const bAddress = normalizeHistoryKey(b.address);
+      return !!aAddress && aAddress === bAddress;
+    }
+    if (aParsed.houseNumber !== bParsed.houseNumber) return false;
+    if (aParsed.name !== bParsed.name) return false;
+    if (aParsed.type && bParsed.type && aParsed.type !== bParsed.type) return false;
+    if (aParsed.direction && bParsed.direction && aParsed.direction !== bParsed.direction) return false;
+    return true;
+  }
+
+  function locationsCompatible(a, b) {
+    return ['city', 'state', 'zip'].every(field => {
+      const aValue = normalizeHistoryKey(a[field]);
+      const bValue = normalizeHistoryKey(b[field]);
+      return !aValue || !bValue || aValue === bValue;
+    });
+  }
+
+  function propertiesMatch(a, b) {
+    if (!String(a.address || '').trim() || !String(b.address || '').trim()) return false;
+    return streetAddressesMatch(a, b) && locationsCompatible(a, b);
   }
 
   function borrowerHistoryNames(c) {
@@ -2584,10 +2705,21 @@
 
   function relatedLoansForClient(client) {
     if (!client) return [];
-    const propertyKey = propertyHistoryKey(client);
-    if (!propertyKey) return [client];
-    return clients
-      .filter(c => c.id === client.id || (propertyHistoryKey(c) === propertyKey && hasSharedBorrower(client, c)))
+    if (!String(client.address || '').trim()) return [client];
+    const matches = clients.filter(c => c.id === client.id || (propertiesMatch(client, c) && hasSharedBorrower(client, c)));
+    const requestedDirection = parseStreetAddress(client.address)?.direction || '';
+    const matchedDirections = new Set(
+      matches
+        .map(c => parseStreetAddress(c.address)?.direction || '')
+        .filter(Boolean)
+    );
+    return matches
+      .filter(c => {
+        const direction = parseStreetAddress(c.address)?.direction || '';
+        if (requestedDirection && direction && direction !== requestedDirection) return false;
+        if (!requestedDirection && direction && matchedDirections.size > 1) return false;
+        return true;
+      })
       .sort(compareLoansNewestFirst);
   }
 
