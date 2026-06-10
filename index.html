@@ -532,6 +532,13 @@
       border-color: rgba(56, 189, 248, 0.45);
       background: rgba(56, 189, 248, 0.09);
     }
+    .partner-deal-card.active {
+      border-color: rgba(56, 189, 248, 0.62);
+      background: rgba(56, 189, 248, 0.12);
+    }
+    .partner-deal-card.active:hover {
+      transform: none;
+    }
     .partner-deal-top {
       display: flex;
       align-items: flex-start;
@@ -570,6 +577,12 @@
       border-color: rgba(245, 158, 11, 0.32);
       background: rgba(245, 158, 11, 0.14);
       color: #fcd34d;
+    }
+    .loan-history-note {
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      margin: -4px 0 12px;
     }
 
     .market-panel {
@@ -2531,6 +2544,58 @@
     return [c.address, cityLine].filter(Boolean).join(', ');
   }
 
+  function normalizeHistoryKey(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '');
+  }
+
+  function propertyHistoryKey(c) {
+    if (!String(c.address || '').trim()) return '';
+    return normalizeHistoryKey([c.address, c.city, c.state, c.zip].filter(Boolean).join('|'));
+  }
+
+  function borrowerHistoryNames(c) {
+    return [1,2,3,4]
+      .map(n => normalizeHistoryKey(borrowerName(c, n)))
+      .filter(Boolean);
+  }
+
+  function hasSharedBorrower(a, b) {
+    const aNames = borrowerHistoryNames(a);
+    const bNames = borrowerHistoryNames(b);
+    if (!aNames.length || !bNames.length) return false;
+    const bSet = new Set(bNames);
+    return aNames.some(name => bSet.has(name));
+  }
+
+  function loanSortValue(c) {
+    const parsed = parseIsoLocalDate(c.closing);
+    if (parsed) return parsed.getTime();
+    return Number(c.updatedAt || c.createdAt || 0);
+  }
+
+  function compareLoansNewestFirst(a, b) {
+    const dateDiff = loanSortValue(b) - loanSortValue(a);
+    if (dateDiff) return dateDiff;
+    return String(b.id || '').localeCompare(String(a.id || ''));
+  }
+
+  function relatedLoansForClient(client) {
+    if (!client) return [];
+    const propertyKey = propertyHistoryKey(client);
+    if (!propertyKey) return [client];
+    return clients
+      .filter(c => c.id === client.id || (propertyHistoryKey(c) === propertyKey && hasSharedBorrower(client, c)))
+      .sort(compareLoansNewestFirst);
+  }
+
+  function loanHistoryBadge(c) {
+    const count = relatedLoansForClient(c).length;
+    return count > 1 ? `<span class="badge badge-other">${count} Loans</span>` : '';
+  }
+
   function propertyLabel(v) {
     const map = { 'O': 'Owner Occupied', '2nd': 'Second Home', 'IP': 'Investment' };
     return map[v] || v || 'Unspecified';
@@ -2746,8 +2811,8 @@
     return pieces.join('<br>');
   }
 
-  function openClientDrawer(id) {
-    selectedClientId = id;
+  function openClientDrawer(id, preferCurrent = true) {
+    selectedClientId = preferredClientDrawerId(id, preferCurrent);
     renderClientDrawer();
     renderTable();
     document.getElementById('clientDrawerOverlay').classList.add('open');
@@ -2888,6 +2953,46 @@
       </button>`;
   }
 
+  function loanHistoryCard(c, index, selectedId) {
+    const loanType = prLabel(c.pr) || 'Loan';
+    const closing = fmtDate(c.closing);
+    const currentLabel = index === 0 ? 'Current Loan' : 'Older Loan';
+    const selectedClass = c.id === selectedId ? ' active' : '';
+    return `
+      <button class="partner-deal-card loan-history-card${selectedClass}" onclick="openLoanHistoryClient(${esc(JSON.stringify(c.id || ''))})" type="button">
+        <div class="partner-deal-top">
+          <div>
+            <div class="partner-deal-name">${esc(currentLabel)}</div>
+            <div class="partner-deal-address">${esc(closing)} · ${esc(primaryBorrower(c))}</div>
+          </div>
+          ${prBadge(c.pr)}
+        </div>
+        <div class="partner-deal-meta">
+          <span class="partner-deal-pill accent">${fmt$(c.loanamt)}</span>
+          <span class="partner-deal-pill">${esc(c.program) || 'Program n/a'}</span>
+          <span class="partner-deal-pill">${fmtRate(c.rate)}</span>
+          <span class="partner-deal-pill">${esc(loanType)}</span>
+          ${c.referral ? `<span class="partner-deal-pill">${esc(c.referral)}</span>` : ''}
+          ${c.id === selectedId ? '<span class="partner-deal-pill accent">Open</span>' : ''}
+        </div>
+      </button>`;
+  }
+
+  function loanHistorySection(c) {
+    const loans = relatedLoansForClient(c);
+    if (loans.length <= 1) return '';
+    const currentLoan = loans[0];
+    const note = `${loanCountLabel(loans.length)} on this property. Current loan is ${fmtDate(currentLoan.closing)}.`;
+    return `
+      <div class="detail-section">
+        <h3>Loan History</h3>
+        <div class="loan-history-note">${esc(note)}</div>
+        <div class="partner-deal-list">
+          ${loans.map((loan, index) => loanHistoryCard(loan, index, c.id)).join('')}
+        </div>
+      </div>`;
+  }
+
   function openPartnerDrawer(partnerName) {
     const partnerClients = clientsForReferralPartner(partnerName);
     const stats = getReferralPartnerStats(getFilteredClients()).find(row => referralAliasKey(row.name) === referralAliasKey(partnerName)) || {
@@ -2938,6 +3043,17 @@
     openClientDrawer(id);
   }
 
+  function openLoanHistoryClient(id) {
+    openClientDrawer(id, false);
+  }
+
+  function preferredClientDrawerId(id, preferCurrent = true) {
+    const requested = clients.find(x => x.id === id);
+    if (!requested || !preferCurrent) return id;
+    const currentLoan = relatedLoansForClient(requested)[0];
+    return currentLoan?.id || id;
+  }
+
   function renderClientDrawer() {
     const c = clients.find(x => x.id === selectedClientId);
     const content = document.getElementById('clientDrawerContent');
@@ -2950,6 +3066,7 @@
       propBadge(c.proptype),
       prBadge(c.pr),
       programBadge(c.program),
+      loanHistoryBadge(c),
       refiWatchBadge(c)
     ].filter(x => x && x !== '—').join('');
     const propertyOptions = [
@@ -2984,6 +3101,7 @@
         <div class="drawer-badges">${badges}</div>
       </div>
       <div class="drawer-body">
+        ${loanHistorySection(c)}
         <div class="detail-section">
           <h3>Borrowers</h3>
           <div class="detail-grid">
@@ -3196,7 +3314,8 @@
         const address = fullAddress(c);
         const loanLine = [prLabel(c.pr), c.program].filter(Boolean).join(' / ');
         const refiTag = refiWatchBadge(c);
-        const statusBadges = [propBadge(c.proptype), prBadge(c.pr), refiTag].filter(x => x && x !== '—').join('');
+        const historyTag = loanHistoryBadge(c);
+        const statusBadges = [propBadge(c.proptype), prBadge(c.pr), historyTag, refiTag].filter(x => x && x !== '—').join('');
         tr.innerHTML = `
           <td>
             <div class="primary">${borrowerRows[0] || esc(primaryBorrower(c))}</div>
