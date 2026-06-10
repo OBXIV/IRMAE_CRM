@@ -1773,6 +1773,11 @@
   let normalizingReferrals = false;
   let normalizingPhones = false;
   let baseReferralPartners = null;
+  let clientViewCache = null;
+
+  function invalidateClientViewCache() {
+    clientViewCache = null;
+  }
   let marketRates = null;
   let resolvingAuthRedirect = false;
   let authPersistenceReady = Promise.resolve();
@@ -1910,6 +1915,7 @@
   function initFirebase() {
     if (isLocalReferralPreview()) {
       clients = buildReferralPreviewClients();
+      invalidateClientViewCache();
       currentUser = { email: 'local-preview' };
       document.getElementById('currentUserEmail').textContent = 'Local referral preview';
       document.getElementById('loginOverlay').classList.remove('open');
@@ -1966,6 +1972,7 @@
           listening = false;
         }
         clients = [];
+        invalidateClientViewCache();
         document.getElementById('currentUserEmail').textContent = '';
         renderTable();
         document.getElementById('loginOverlay').classList.add('open');
@@ -2107,6 +2114,7 @@
       clients = val && typeof val === 'object'
         ? Object.values(val).map(normalizeIncomingClient)
         : [];
+      invalidateClientViewCache();
       hideBanner();
       renderTable();
       syncCanonicalReferralNames(val);
@@ -2356,7 +2364,51 @@
     });
   }
 
+  function getClientViewCache() {
+    if (!clientViewCache) clientViewCache = buildClientViewCache();
+    return clientViewCache;
+  }
+
+  function buildClientViewCache() {
+    const relatedById = new Map();
+    const historyCountById = new Map();
+    const coveredIds = new Set();
+    const currentRows = [];
+    const rows = sortedClients();
+
+    const cachedRelatedLoans = c => {
+      if (!c?.id) return computeRelatedLoansForClient(c);
+      if (!relatedById.has(c.id)) {
+        relatedById.set(c.id, computeRelatedLoansForClient(c));
+      }
+      return relatedById.get(c.id);
+    };
+
+    rows.forEach(c => {
+      if (coveredIds.has(c.id)) return;
+      const related = cachedRelatedLoans(c);
+      const current = related[0] || c;
+      currentRows.push(current);
+      related.forEach(loan => coveredIds.add(loan.id));
+    });
+
+    relatedById.forEach((related, id) => {
+      historyCountById.set(id, related.length);
+    });
+    currentRows.forEach(c => {
+      historyCountById.set(c.id, cachedRelatedLoans(c).length);
+    });
+
+    return {
+      currentRows: currentRows.sort(compareLoansNewestFirst),
+      relatedById,
+      historyCountById
+    };
+  }
+
   function currentClientRows(sourceClients = clients) {
+    if (sourceClients === clients) return getClientViewCache().currentRows;
+
     const sourceIds = new Set(sourceClients.map(c => c.id));
     const coveredIds = new Set();
     const currentRows = [];
@@ -2725,7 +2777,7 @@
     return String(b.id || '').localeCompare(String(a.id || ''));
   }
 
-  function relatedLoansForClient(client) {
+  function computeRelatedLoansForClient(client) {
     if (!client) return [];
     if (!String(client.address || '').trim()) return [client];
     const matches = clients.filter(c => c.id === client.id || (propertiesMatch(client, c) && hasSharedBorrower(client, c)));
@@ -2745,8 +2797,19 @@
       .sort(compareLoansNewestFirst);
   }
 
+  function relatedLoansForClient(client) {
+    if (!client) return [];
+    if (!client.id) return computeRelatedLoansForClient(client);
+    const cache = getClientViewCache();
+    if (!cache.relatedById.has(client.id)) {
+      cache.relatedById.set(client.id, computeRelatedLoansForClient(client));
+      cache.historyCountById.set(client.id, cache.relatedById.get(client.id).length);
+    }
+    return cache.relatedById.get(client.id);
+  }
+
   function loanHistoryBadge(c) {
-    const count = relatedLoansForClient(c).length;
+    const count = getClientViewCache().historyCountById.get(c.id) || relatedLoansForClient(c).length;
     return count > 1 ? `<span class="badge badge-other">${count} Loans</span>` : '';
   }
 
@@ -2943,6 +3006,7 @@
         ...updates
       });
       Object.assign(existing, updates);
+      invalidateClientViewCache();
       renderTable();
       renderClientDrawer();
       showBanner('Client details saved.');
