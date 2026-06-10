@@ -2138,6 +2138,10 @@
     return `${count} Loan${count === 1 ? '' : 's'}`;
   }
 
+  function clientCountLabel(count) {
+    return `${count} Client${count === 1 ? '' : 's'}`;
+  }
+
   function referralAliasKey(value) {
     return String(value || '')
       .trim()
@@ -2339,7 +2343,7 @@
   }
 
   function getAvailableYears() {
-    return Array.from(new Set(clients.map(closingYear).filter(Boolean)))
+    return Array.from(new Set(currentClientRows().map(closingYear).filter(Boolean)))
       .sort((a, b) => Number(b) - Number(a));
   }
 
@@ -2350,6 +2354,22 @@
       if (!b.closing) return -1;
       return String(b.closing).localeCompare(String(a.closing));
     });
+  }
+
+  function currentClientRows(sourceClients = clients) {
+    const sourceIds = new Set(sourceClients.map(c => c.id));
+    const coveredIds = new Set();
+    const currentRows = [];
+
+    [...sourceClients].sort(compareLoansNewestFirst).forEach(c => {
+      if (coveredIds.has(c.id)) return;
+      const related = relatedLoansForClient(c).filter(loan => sourceIds.has(loan.id));
+      const current = related[0] || c;
+      currentRows.push(current);
+      related.forEach(loan => coveredIds.add(loan.id));
+    });
+
+    return currentRows.sort(compareLoansNewestFirst);
   }
 
   function matchesSearch(c, q) {
@@ -2388,11 +2408,13 @@
   function getFilteredClients(options = {}) {
     const includeSearch = options.includeSearch !== false;
     const includeRefi = options.includeRefi !== false;
+    const currentOnly = options.currentOnly !== false;
     const q = includeSearch
       ? document.getElementById('searchInput').value.trim().toLowerCase()
       : '';
 
-    return sortedClients().filter(c => {
+    const sourceClients = currentOnly ? currentClientRows() : sortedClients();
+    return sourceClients.filter(c => {
       if (activeYearFilter !== 'all' && closingYear(c) !== activeYearFilter) return false;
       if (!matchesSearch(c, q)) return false;
       if (includeRefi && showRefiOnly && !shouldFlagRefi(c)) return false;
@@ -3385,7 +3407,7 @@
     const pieces = [activeYearFilter === 'all' ? 'All Years' : `${activeYearFilter} Closings`];
     if (showRefiOnly) pieces.push('Refi Watch');
     if (search) pieces.push(`Search: "${search}"`);
-    document.getElementById('scopeLabel').textContent = `Showing: ${pieces.join(' | ')} | ${loanCountLabel(total)}`;
+    document.getElementById('scopeLabel').textContent = `Showing: ${pieces.join(' | ')} | ${clientCountLabel(total)}`;
   }
 
   function renderPagination(total) {
