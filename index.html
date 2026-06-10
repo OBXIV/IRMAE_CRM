@@ -1893,7 +1893,7 @@
     if (!firebase.apps.length) firebase.initializeApp(config);
     db = firebase.database();
     auth = firebase.auth();
-    authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(err => {
+    authPersistenceReady = auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(err => {
       console.warn('Could not set Firebase auth persistence:', err);
     });
 
