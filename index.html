@@ -1438,7 +1438,7 @@
       </div>
       <div class="field">
         <label>Borrower 1 Phone</label>
-        <input type="tel" id="f-cell1" placeholder="(555) 123-4567" />
+        <input type="tel" id="f-cell1" placeholder="555-555-5555" onblur="normalizePhoneInput(this)" />
       </div>
       <div class="field">
         <label>Borrower 1 Email</label>
@@ -1459,7 +1459,7 @@
       </div>
       <div class="field">
         <label>Borrower 2 Phone</label>
-        <input type="tel" id="f-cell2" placeholder="(555) 123-4567" />
+        <input type="tel" id="f-cell2" placeholder="555-555-5555" onblur="normalizePhoneInput(this)" />
       </div>
       <div class="field">
         <label>Borrower 2 Email</label>
@@ -1483,7 +1483,7 @@
       </div>
       <div class="field">
         <label>Borrower 3 Phone</label>
-        <input type="tel" id="f-cell3" placeholder="(555) 123-4567" />
+        <input type="tel" id="f-cell3" placeholder="555-555-5555" onblur="normalizePhoneInput(this)" />
       </div>
       <div class="field">
         <label>Borrower 3 Email</label>
@@ -1507,7 +1507,7 @@
       </div>
       <div class="field">
         <label>Borrower 4 Phone</label>
-        <input type="tel" id="f-cell4" placeholder="(555) 123-4567" />
+        <input type="tel" id="f-cell4" placeholder="555-555-5555" onblur="normalizePhoneInput(this)" />
       </div>
       <div class="field">
         <label>Borrower 4 Email</label>
@@ -1758,6 +1758,7 @@
   let currentUser = null;
   let listening = false;
   let normalizingReferrals = false;
+  let normalizingPhones = false;
   let baseReferralPartners = null;
   let marketRates = null;
   let resolvingAuthRedirect = false;
@@ -1992,9 +1993,32 @@
     if (auth) auth.signOut();
   }
 
+  function normalizePhoneNumber(value) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    const extensionMatch = text.match(/\b(?:ext\.?|x)\s*(\d+)\s*$/i);
+    const extension = extensionMatch ? ` x${extensionMatch[1]}` : '';
+    const baseText = extensionMatch ? text.slice(0, extensionMatch.index).trim() : text;
+    let digits = baseText.replace(/\D/g, '');
+    if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+    if (digits.length === 10) {
+      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}${extension}`;
+    }
+    return text;
+  }
+
+  function normalizePhoneInput(input) {
+    if (!input) return;
+    input.value = normalizePhoneNumber(input.value);
+  }
+
   function normalizeIncomingClient(c) {
     return {
       ...c,
+      cell1: normalizePhoneNumber(c.cell1),
+      cell2: normalizePhoneNumber(c.cell2),
+      cell3: normalizePhoneNumber(c.cell3),
+      cell4: normalizePhoneNumber(c.cell4),
       referral: cleanReferralName(c.referral),
       cosigner2: !!c.cosigner2,
       cosigner3: !!c.cosigner3,
@@ -2033,6 +2057,34 @@
     }
   }
 
+  async function syncCanonicalPhoneNumbers(val) {
+    if (!db || !currentUser || normalizingPhones || !val || typeof val !== 'object') return;
+
+    const updates = {};
+    Object.entries(val).forEach(([key, record]) => {
+      if (!record || typeof record !== 'object') return;
+      [1, 2, 3, 4].forEach(n => {
+        const field = 'cell' + n;
+        const original = String(record[field] || '').trim();
+        const canonical = normalizePhoneNumber(original);
+        if (original && canonical && original !== canonical) {
+          updates[CLIENTS_PATH + '/' + key + '/' + field] = canonical;
+        }
+      });
+    });
+
+    if (Object.keys(updates).length === 0) return;
+
+    normalizingPhones = true;
+    try {
+      await db.ref().update(updates);
+    } catch (err) {
+      console.warn('Could not normalize phone numbers:', err);
+    } finally {
+      normalizingPhones = false;
+    }
+  }
+
   function startListening() {
     if (!db || listening) return;
     listening = true;
@@ -2045,6 +2097,7 @@
       hideBanner();
       renderTable();
       syncCanonicalReferralNames(val);
+      syncCanonicalPhoneNumbers(val);
     }, err => {
       showBanner('Firebase error: ' + err.message + '. Check Auth and Database Rules.', true);
     });
@@ -2288,6 +2341,12 @@
 
   function matchesSearch(c, q) {
     if (!q) return true;
+    const qDigits = q.replace(/\D/g, '');
+    const phoneMatches = value => {
+      const text = String(value || '').toLowerCase();
+      const digits = text.replace(/\D/g, '');
+      return text.includes(q) || (qDigits && digits.includes(qDigits));
+    };
     return (
       (c.borrower1first || '').toLowerCase().includes(q) ||
       (c.borrower1last  || '').toLowerCase().includes(q) ||
@@ -2306,10 +2365,10 @@
       (c.email2         || '').toLowerCase().includes(q) ||
       (c.email3         || '').toLowerCase().includes(q) ||
       (c.email4         || '').toLowerCase().includes(q) ||
-      (c.cell1          || '').toLowerCase().includes(q) ||
-      (c.cell2          || '').toLowerCase().includes(q) ||
-      (c.cell3          || '').toLowerCase().includes(q) ||
-      (c.cell4          || '').toLowerCase().includes(q)
+      phoneMatches(c.cell1) ||
+      phoneMatches(c.cell2) ||
+      phoneMatches(c.cell3) ||
+      phoneMatches(c.cell4)
     );
   }
 
@@ -2557,6 +2616,10 @@
       </label>`;
   }
 
+  function drawerPhoneField(label, field, value) {
+    return drawerInputField(label, field, value, 'tel', 'onblur="normalizePhoneInput(this)"');
+  }
+
   function drawerReferralField(value) {
     return `
       <label class="drawer-field referral-field full">
@@ -2592,7 +2655,7 @@
       <div class="drawer-field-group">
         ${drawerInputField('Borrower ' + n + ' First', 'borrower' + n + 'first', c['borrower' + n + 'first'])}
         ${drawerInputField('Borrower ' + n + ' Last', 'borrower' + n + 'last', c['borrower' + n + 'last'])}
-        ${drawerInputField('Borrower ' + n + ' Phone', 'cell' + n, c['cell' + n], 'tel')}
+        ${drawerPhoneField('Borrower ' + n + ' Phone', 'cell' + n, c['cell' + n])}
         ${drawerInputField('Borrower ' + n + ' Email', 'email' + n, c['email' + n], 'email')}
         ${n > 1 ? drawerCheckboxField('Borrower ' + n + ' Co-Signer', 'cosigner' + n, c['cosigner' + n]) : ''}
         ${drawerCheckboxField('Borrower ' + n + ' Deceased', 'deceased' + n, c['deceased' + n])}
@@ -2641,15 +2704,15 @@
       loanamt: drawerValue('loanamt'),
       rate: drawerValue('rate'),
       closing: drawerValue('closing'),
-      cell1: drawerValue('cell1'),
+      cell1: normalizePhoneNumber(drawerValue('cell1')),
       email1: drawerValue('email1'),
       birthday1: drawerValue('birthday1'),
-      cell2: drawerValue('cell2'),
+      cell2: normalizePhoneNumber(drawerValue('cell2')),
       email2: drawerValue('email2'),
       birthday2: drawerValue('birthday2'),
-      cell3: drawerValue('cell3'),
+      cell3: normalizePhoneNumber(drawerValue('cell3')),
       email3: drawerValue('email3'),
-      cell4: drawerValue('cell4'),
+      cell4: normalizePhoneNumber(drawerValue('cell4')),
       email4: drawerValue('email4'),
       referral: cleanReferralName(drawerValue('referral')),
       updatedAt: Date.now()
@@ -3299,6 +3362,10 @@
     const data = {};
     FIELDS.forEach(f => { data[f] = document.getElementById('f-' + f).value.trim(); });
     data.referral = cleanReferralName(data.referral);
+    [1, 2, 3, 4].forEach(n => {
+      data['cell' + n] = normalizePhoneNumber(data['cell' + n]);
+      setFormFieldValue('cell' + n, data['cell' + n]);
+    });
     renderReferralOptions(data.referral);
 
     data.cosigner2 = document.getElementById('f-cosigner2').checked;
@@ -3651,7 +3718,9 @@
   }
 
   function setImportField(client, field, value) {
-    const cleaned = cleanImportCell(value);
+    const cleaned = field.startsWith('cell')
+      ? normalizePhoneNumber(cleanImportCell(value))
+      : cleanImportCell(value);
     if (cleaned !== '') client[field] = cleaned;
   }
 
@@ -3800,6 +3869,12 @@
       if (!raw || typeof raw !== 'object') return;
       const rawClient = { ...raw };
       if ('referral' in rawClient) rawClient.referral = cleanReferralName(rawClient.referral);
+      [1,2,3,4].forEach(n => {
+        const field = 'cell' + n;
+        if (Object.prototype.hasOwnProperty.call(rawClient, field)) {
+          rawClient[field] = normalizePhoneNumber(rawClient[field]);
+        }
+      });
       const key = clientImportKey(rawClient);
       const id = rawClient.id || (key ? existingByKey.get(key) : '') || uid();
       const existing = clients.find(client => client.id === id) || {};
