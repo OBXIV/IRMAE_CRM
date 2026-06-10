@@ -2426,35 +2426,41 @@
 
   function matchesSearch(c, q) {
     if (!q) return true;
-    const qDigits = q.replace(/\D/g, '');
-    const phoneMatches = value => {
-      const text = String(value || '').toLowerCase();
-      const digits = text.replace(/\D/g, '');
-      return text.includes(q) || (qDigits && digits.includes(qDigits));
-    };
-    return (
-      (c.borrower1first || '').toLowerCase().includes(q) ||
-      (c.borrower1last  || '').toLowerCase().includes(q) ||
-      (c.borrower2first || '').toLowerCase().includes(q) ||
-      (c.borrower2last  || '').toLowerCase().includes(q) ||
-      (c.borrower3first || '').toLowerCase().includes(q) ||
-      (c.borrower3last  || '').toLowerCase().includes(q) ||
-      (c.borrower4first || '').toLowerCase().includes(q) ||
-      (c.borrower4last  || '').toLowerCase().includes(q) ||
-      (c.address        || '').toLowerCase().includes(q) ||
-      (c.city           || '').toLowerCase().includes(q) ||
-      (c.state          || '').toLowerCase().includes(q) ||
-      (c.referral       || '').toLowerCase().includes(q) ||
-      (c.program        || '').toLowerCase().includes(q) ||
-      (c.email1         || '').toLowerCase().includes(q) ||
-      (c.email2         || '').toLowerCase().includes(q) ||
-      (c.email3         || '').toLowerCase().includes(q) ||
-      (c.email4         || '').toLowerCase().includes(q) ||
-      phoneMatches(c.cell1) ||
-      phoneMatches(c.cell2) ||
-      phoneMatches(c.cell3) ||
-      phoneMatches(c.cell4)
-    );
+    const textParts = [
+      borrowerName(c, 1),
+      borrowerName(c, 2),
+      borrowerName(c, 3),
+      borrowerName(c, 4),
+      allBorrowers(c).join(' '),
+      c.borrower1first,
+      c.borrower1last,
+      c.borrower2first,
+      c.borrower2last,
+      c.borrower3first,
+      c.borrower3last,
+      c.borrower4first,
+      c.borrower4last,
+      c.address,
+      fullAddress(c),
+      c.city,
+      c.state,
+      c.zip,
+      c.referral,
+      c.program,
+      c.email1,
+      c.email2,
+      c.email3,
+      c.email4
+    ];
+    const phoneText = [c.cell1, c.cell2, c.cell3, c.cell4].filter(Boolean).join(' ');
+    const textHaystack = textParts.filter(Boolean).join(' ').toLowerCase();
+    const digitHaystack = phoneText.replace(/\D/g, '');
+    const queryDigits = q.replace(/\D/g, '');
+    const terms = q.split(/\s+/).filter(Boolean);
+    return terms.every(term => {
+      const termDigits = term.replace(/\D/g, '');
+      return textHaystack.includes(term) || (!!termDigits && digitHaystack.includes(termDigits));
+    }) || (!!queryDigits && digitHaystack.includes(queryDigits));
   }
 
   function getFilteredClients(options = {}) {
