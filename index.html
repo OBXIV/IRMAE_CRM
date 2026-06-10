@@ -873,6 +873,8 @@
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .form-grid .full { grid-column: 1 / -1; }
     .form-grid .third { grid-column: span 1; }
+    .borrower-row { margin-top: 14px; }
+    .borrower-row:first-of-type { margin-top: 0; }
 
     .field { display: flex; flex-direction: column; gap: 4px; }
     .field label { font-size: 0.78rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
@@ -1425,7 +1427,7 @@
     <h2 id="modalTitle">Add New Client</h2>
 
     <div class="section-label">Borrowers</div>
-    <div class="form-grid">
+    <div class="form-grid borrower-row">
       <div class="field">
         <label>Borrower 1 First *</label>
         <input type="text" id="f-borrower1first" placeholder="First" />
@@ -1434,9 +1436,19 @@
         <label>Borrower 1 Last *</label>
         <input type="text" id="f-borrower1last" placeholder="Last" />
       </div>
+      <div class="field">
+        <label>Borrower 1 Phone</label>
+        <input type="tel" id="f-cell1" placeholder="(555) 123-4567" />
+      </div>
+      <div class="field">
+        <label>Borrower 1 Email</label>
+        <input type="email" id="f-email1" placeholder="borrower1@email.com" />
+      </div>
       <label class="cosigner-check">
         <input type="checkbox" id="f-deceased1" /> Deceased
       </label>
+    </div>
+    <div class="form-grid borrower-row">
       <div class="field">
         <label>Borrower 2 First</label>
         <input type="text" id="f-borrower2first" placeholder="First" />
@@ -1445,6 +1457,14 @@
         <label>Borrower 2 Last</label>
         <input type="text" id="f-borrower2last" placeholder="Last" />
       </div>
+      <div class="field">
+        <label>Borrower 2 Phone</label>
+        <input type="tel" id="f-cell2" placeholder="(555) 123-4567" />
+      </div>
+      <div class="field">
+        <label>Borrower 2 Email</label>
+        <input type="email" id="f-email2" placeholder="borrower2@email.com" />
+      </div>
       <label class="cosigner-check">
         <input type="checkbox" id="f-cosigner2" /> Co-Signer
       </label>
@@ -1452,7 +1472,7 @@
         <input type="checkbox" id="f-deceased2" /> Deceased
       </label>
     </div>
-    <div class="form-grid" id="borrower3-row" style="display:none; margin-top:14px">
+    <div class="form-grid borrower-row" id="borrower3-row" style="display:none">
       <div class="field">
         <label>Borrower 3 First</label>
         <input type="text" id="f-borrower3first" placeholder="First" />
@@ -1461,6 +1481,14 @@
         <label>Borrower 3 Last</label>
         <input type="text" id="f-borrower3last" placeholder="Last" />
       </div>
+      <div class="field">
+        <label>Borrower 3 Phone</label>
+        <input type="tel" id="f-cell3" placeholder="(555) 123-4567" />
+      </div>
+      <div class="field">
+        <label>Borrower 3 Email</label>
+        <input type="email" id="f-email3" placeholder="borrower3@email.com" />
+      </div>
       <label class="cosigner-check">
         <input type="checkbox" id="f-cosigner3" /> Co-Signer
       </label>
@@ -1468,7 +1496,7 @@
         <input type="checkbox" id="f-deceased3" /> Deceased
       </label>
     </div>
-    <div class="form-grid" id="borrower4-row" style="display:none; margin-top:14px">
+    <div class="form-grid borrower-row" id="borrower4-row" style="display:none">
       <div class="field">
         <label>Borrower 4 First</label>
         <input type="text" id="f-borrower4first" placeholder="First" />
@@ -1476,6 +1504,14 @@
       <div class="field">
         <label>Borrower 4 Last</label>
         <input type="text" id="f-borrower4last" placeholder="Last" />
+      </div>
+      <div class="field">
+        <label>Borrower 4 Phone</label>
+        <input type="tel" id="f-cell4" placeholder="(555) 123-4567" />
+      </div>
+      <div class="field">
+        <label>Borrower 4 Email</label>
+        <input type="email" id="f-email4" placeholder="borrower4@email.com" />
       </div>
       <label class="cosigner-check">
         <input type="checkbox" id="f-cosigner4" /> Co-Signer
@@ -1616,28 +1652,11 @@
       </div>
     </div>
 
-    <div class="section-label">Contact Info</div>
+    <div class="section-label">Birthdays</div>
     <div class="form-grid">
-      <div class="field">
-        <label>Borrower 1 Cell</label>
-        <input type="tel" id="f-cell1" placeholder="(555) 123-4567" />
-      </div>
-      <div class="field">
-        <label>Borrower 1 Email</label>
-        <input type="email" id="f-email1" placeholder="borrower1@email.com" />
-      </div>
       <div class="field">
         <label>Borrower 1 Birthday</label>
         <input type="date" id="f-birthday1" />
-      </div>
-      <div class="field" style="border-top: 0"></div>
-      <div class="field">
-        <label>Borrower 2 Cell</label>
-        <input type="tel" id="f-cell2" placeholder="(555) 123-4567" />
-      </div>
-      <div class="field">
-        <label>Borrower 2 Email</label>
-        <input type="email" id="f-email2" placeholder="borrower2@email.com" />
       </div>
       <div class="field">
         <label>Borrower 2 Birthday</label>
@@ -2285,8 +2304,12 @@
       (c.program        || '').toLowerCase().includes(q) ||
       (c.email1         || '').toLowerCase().includes(q) ||
       (c.email2         || '').toLowerCase().includes(q) ||
+      (c.email3         || '').toLowerCase().includes(q) ||
+      (c.email4         || '').toLowerCase().includes(q) ||
       (c.cell1          || '').toLowerCase().includes(q) ||
-      (c.cell2          || '').toLowerCase().includes(q)
+      (c.cell2          || '').toLowerCase().includes(q) ||
+      (c.cell3          || '').toLowerCase().includes(q) ||
+      (c.cell4          || '').toLowerCase().includes(q)
     );
   }
 
@@ -2564,6 +2587,18 @@
       </label>`;
   }
 
+  function borrowerDrawerGroup(c, n) {
+    return `
+      <div class="drawer-field-group">
+        ${drawerInputField('Borrower ' + n + ' First', 'borrower' + n + 'first', c['borrower' + n + 'first'])}
+        ${drawerInputField('Borrower ' + n + ' Last', 'borrower' + n + 'last', c['borrower' + n + 'last'])}
+        ${drawerInputField('Borrower ' + n + ' Phone', 'cell' + n, c['cell' + n], 'tel')}
+        ${drawerInputField('Borrower ' + n + ' Email', 'email' + n, c['email' + n], 'email')}
+        ${n > 1 ? drawerCheckboxField('Borrower ' + n + ' Co-Signer', 'cosigner' + n, c['cosigner' + n]) : ''}
+        ${drawerCheckboxField('Borrower ' + n + ' Deceased', 'deceased' + n, c['deceased' + n])}
+      </div>`;
+  }
+
   function drawerValue(field) {
     return (document.getElementById('drawer-' + field)?.value || '').trim();
   }
@@ -2612,6 +2647,10 @@
       cell2: drawerValue('cell2'),
       email2: drawerValue('email2'),
       birthday2: drawerValue('birthday2'),
+      cell3: drawerValue('cell3'),
+      email3: drawerValue('email3'),
+      cell4: drawerValue('cell4'),
+      email4: drawerValue('email4'),
       referral: cleanReferralName(drawerValue('referral')),
       updatedAt: Date.now()
     };
@@ -2885,29 +2924,10 @@
         <div class="detail-section">
           <h3>Borrowers</h3>
           <div class="detail-grid">
-            <div class="drawer-field-group">
-              ${drawerInputField('Borrower 1 First', 'borrower1first', c.borrower1first)}
-              ${drawerInputField('Borrower 1 Last', 'borrower1last', c.borrower1last)}
-              ${drawerCheckboxField('Borrower 1 Deceased', 'deceased1', c.deceased1)}
-            </div>
-            <div class="drawer-field-group">
-              ${drawerInputField('Borrower 2 First', 'borrower2first', c.borrower2first)}
-              ${drawerInputField('Borrower 2 Last', 'borrower2last', c.borrower2last)}
-              ${drawerCheckboxField('Borrower 2 Co-Signer', 'cosigner2', c.cosigner2)}
-              ${drawerCheckboxField('Borrower 2 Deceased', 'deceased2', c.deceased2)}
-            </div>
-            <div class="drawer-field-group">
-              ${drawerInputField('Borrower 3 First', 'borrower3first', c.borrower3first)}
-              ${drawerInputField('Borrower 3 Last', 'borrower3last', c.borrower3last)}
-              ${drawerCheckboxField('Borrower 3 Co-Signer', 'cosigner3', c.cosigner3)}
-              ${drawerCheckboxField('Borrower 3 Deceased', 'deceased3', c.deceased3)}
-            </div>
-            <div class="drawer-field-group">
-              ${drawerInputField('Borrower 4 First', 'borrower4first', c.borrower4first)}
-              ${drawerInputField('Borrower 4 Last', 'borrower4last', c.borrower4last)}
-              ${drawerCheckboxField('Borrower 4 Co-Signer', 'cosigner4', c.cosigner4)}
-              ${drawerCheckboxField('Borrower 4 Deceased', 'deceased4', c.deceased4)}
-            </div>
+            ${borrowerDrawerGroup(c, 1)}
+            ${borrowerDrawerGroup(c, 2)}
+            ${borrowerHasExtraFormData(c, 3) ? borrowerDrawerGroup(c, 3) : ''}
+            ${borrowerHasExtraFormData(c, 4) ? borrowerDrawerGroup(c, 4) : ''}
           </div>
         </div>
         <div class="detail-section">
@@ -2932,16 +2952,12 @@
           </div>
         </div>
         <div class="detail-section">
-          <h3>Contact Info</h3>
+          <h3>Birthdays</h3>
           <div class="detail-grid">
             <div class="drawer-field-group">
-              ${drawerInputField('Borrower 1 Cell', 'cell1', c.cell1, 'tel')}
-              ${drawerInputField('Borrower 1 Email', 'email1', c.email1, 'email')}
               ${drawerInputField('Borrower 1 Birthday', 'birthday1', c.birthday1, 'date')}
             </div>
             <div class="drawer-field-group">
-              ${drawerInputField('Borrower 2 Cell', 'cell2', c.cell2, 'tel')}
-              ${drawerInputField('Borrower 2 Email', 'email2', c.email2, 'email')}
               ${drawerInputField('Borrower 2 Birthday', 'birthday2', c.birthday2, 'date')}
             </div>
           </div>
@@ -3200,7 +3216,9 @@
   const FIELDS = ['proptype','pr','program','rate','salesprice','loanamt','closing','referral',
                   'borrower1first','borrower1last','borrower2first','borrower2last',
                   'borrower3first','borrower3last','borrower4first','borrower4last',
-                  'address','city','state','zip','cell1','email1','birthday1','cell2','email2','birthday2'];
+                  'address','city','state','zip',
+                  'cell1','email1','birthday1','cell2','email2','birthday2',
+                  'cell3','email3','cell4','email4'];
 
   function ensureSelectOption(select, value) {
     const text = String(value || '').trim();
@@ -3213,6 +3231,17 @@
     if (!el) return;
     if (el.tagName === 'SELECT') ensureSelectOption(el, value);
     el.value = value == null ? '' : value;
+  }
+
+  function borrowerHasExtraFormData(c, n) {
+    return !!(
+      c['borrower' + n + 'first'] ||
+      c['borrower' + n + 'last'] ||
+      c['cell' + n] ||
+      c['email' + n] ||
+      c['cosigner' + n] ||
+      c['deceased' + n]
+    );
   }
 
   function openModal(id) {
@@ -3238,8 +3267,8 @@
       const c = clients.find(x => x.id === id);
       if (c) {
         FIELDS.forEach(f => { if (c[f] != null) setFormFieldValue(f, c[f]); });
-        if (c.borrower3first || c.borrower3last) { borrowerCount = 3; document.getElementById('borrower3-row').style.display = ''; }
-        if (c.borrower4first || c.borrower4last) { borrowerCount = 4; document.getElementById('borrower4-row').style.display = ''; document.getElementById('addBorrowerBtn').style.display = 'none'; }
+        if (borrowerHasExtraFormData(c, 3)) { borrowerCount = 3; document.getElementById('borrower3-row').style.display = ''; }
+        if (borrowerHasExtraFormData(c, 4)) { borrowerCount = 4; document.getElementById('borrower4-row').style.display = ''; document.getElementById('addBorrowerBtn').style.display = 'none'; }
         document.getElementById('f-cosigner2').checked = !!c.cosigner2;
         document.getElementById('f-cosigner3').checked = !!c.cosigner3;
         document.getElementById('f-cosigner4').checked = !!c.cosigner4;
@@ -3355,12 +3384,16 @@
     city: ['City', 'Property City'],
     state: ['State', 'Property State'],
     zip: ['Zip', 'ZIP', 'Zip Code', 'Postal Code'],
-    cell1: ['Cell', 'Phone', 'Mobile', 'Borrower Cell', 'Borrower 1 Cell', 'Borrower Phone', 'Borrower 1 Phone'],
+    cell1: ['Cell', 'Phone', 'Mobile', 'Borrower Cell', 'Borrower 1 Cell', 'Borrower Phone', 'Borrower 1 Phone', 'Borrower 1 Mobile'],
     email1: ['Email', 'Borrower Email', 'Borrower 1 Email'],
     birthday1: ['Birthday', 'DOB', 'Date of Birth', 'Borrower Birthday', 'Borrower 1 Birthday'],
-    cell2: ['Co-Borrower Cell', 'Borrower 2 Cell', 'CoBorrower Phone', 'Borrower 2 Phone'],
+    cell2: ['Co-Borrower Cell', 'Borrower 2 Cell', 'CoBorrower Phone', 'Borrower 2 Phone', 'Borrower 2 Mobile'],
     email2: ['Co-Borrower Email', 'Borrower 2 Email', 'CoBorrower Email'],
-    birthday2: ['Co-Borrower Birthday', 'Borrower 2 Birthday', 'CoBorrower DOB', 'Borrower 2 DOB']
+    birthday2: ['Co-Borrower Birthday', 'Borrower 2 Birthday', 'CoBorrower DOB', 'Borrower 2 DOB'],
+    cell3: ['Borrower 3 Cell', 'Borrower 3 Phone', 'Borrower 3 Mobile'],
+    email3: ['Borrower 3 Email'],
+    cell4: ['Borrower 4 Cell', 'Borrower 4 Phone', 'Borrower 4 Mobile'],
+    email4: ['Borrower 4 Email']
   };
 
   const BORROWER_GENERIC_HEADERS = ['Borrower', 'Borrowers', 'Borrower Name', 'Client', 'Client Name', 'Customer', 'Customer Name', 'Name'];
@@ -3643,15 +3676,19 @@
     setImportField(client, 'cell2', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.cell2));
     setImportField(client, 'email2', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.email2));
     setImportField(client, 'birthday2', normalizeImportDate(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.birthday2)));
+    setImportField(client, 'cell3', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.cell3));
+    setImportField(client, 'email3', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.email3));
+    setImportField(client, 'cell4', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.cell4));
+    setImportField(client, 'email4', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.email4));
 
     mapImportedBorrowers(client, row, headerKeys);
     return client;
   }
 
   function hasClientImportData(client) {
-    const hasClientIdentity = ['borrower1first','borrower1last','borrower2first','borrower2last','email1','cell1']
+    const hasClientIdentity = ['borrower1first','borrower1last','borrower2first','borrower2last','borrower3first','borrower3last','borrower4first','borrower4last','email1','cell1','email2','cell2','email3','cell3','email4','cell4']
       .some(field => cleanImportCell(client[field]) !== '');
-    const hasMappedData = ['proptype','pr','program','rate','salesprice','loanamt','closing','referral','city','state','zip','email1','cell1']
+    const hasMappedData = ['proptype','pr','program','rate','salesprice','loanamt','closing','referral','city','state','zip','email1','cell1','email2','cell2','email3','cell3','email4','cell4']
       .some(field => cleanImportCell(client[field]) !== '');
     return hasClientIdentity && hasMappedData;
   }
