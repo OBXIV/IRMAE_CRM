@@ -838,6 +838,13 @@
       box-shadow: 0 1px 5px rgba(15, 23, 42, 0.18);
     }
 
+    /* Ownership / property verification badges */
+    .badge-verified  { background: rgba(34, 197, 94, 0.15);   color: #86efac; border-color: rgba(34, 197, 94, 0.35); }
+    .badge-trust     { background: rgba(245, 158, 11, 0.16);  color: #fcd34d; border-color: rgba(245, 158, 11, 0.38); }
+    .badge-entity    { background: rgba(139, 92, 246, 0.16);  color: #c4b5fd; border-color: rgba(139, 92, 246, 0.36); }
+    .badge-nlor      { background: rgba(239, 68, 68, 0.16);   color: #fca5a5; border-color: rgba(239, 68, 68, 0.36); }
+    .badge-unverified{ background: rgba(148, 163, 184, 0.13); color: #94a3b8; border-color: rgba(148, 163, 184, 0.28); }
+
     .actions { display: flex; gap: 8px; }
 
     .empty-state {
@@ -2856,6 +2863,19 @@
     return `<span class="badge ${cls}">${esc(prLabel(v))}</span>`;
   }
 
+  function ownershipStatusBadge(v) {
+    if (!v || v === 'unverified') return '';
+    const map = {
+      'verified':   { cls: 'badge-verified',   label: 'Verified ✓' },
+      'trust':      { cls: 'badge-trust',       label: 'Trust' },
+      'entity':     { cls: 'badge-entity',      label: 'Entity' },
+      'nlor':       { cls: 'badge-nlor',        label: 'NLOR' }
+    };
+    const entry = map[v];
+    if (!entry) return '';
+    return `<span class="badge ${entry.cls}" title="Ownership: ${entry.label}">${entry.label}</span>`;
+  }
+
   function programBadgeClass(p) {
     const text = String(p || '').toLowerCase();
     if (!text) return 'badge-other';
@@ -2999,6 +3019,7 @@
       state: drawerValue('state'),
       zip: drawerValue('zip'),
       proptype: drawerValue('proptype'),
+      ownershipStatus: drawerValue('ownershipStatus') || 'unverified',
       pr: drawerValue('pr'),
       program: drawerValue('program'),
       salesprice: drawerValue('salesprice'),
@@ -3304,7 +3325,8 @@
       prBadge(c.pr),
       programBadge(c.program),
       loanHistoryBadge(c),
-      refiWatchBadge(c)
+      refiWatchBadge(c),
+      ownershipStatusBadge(c.ownershipStatus)
     ].filter(x => x && x !== '—').join('');
     const propertyOptions = [
       { value: '', label: 'Select property type' },
@@ -3356,6 +3378,13 @@
             ${drawerInputField('State', 'state', c.state, 'text', 'maxlength="2"')}
             ${drawerInputField('Zip', 'zip', c.zip, 'text', 'maxlength="10"')}
             ${drawerSelectField('Property Type', 'proptype', c.proptype, propertyOptions, false, true)}
+            ${drawerSelectField('Ownership Status', 'ownershipStatus', c.ownershipStatus || 'unverified', [
+              { value: 'unverified', label: 'Unverified' },
+              { value: 'verified',  label: 'Verified ✓ — Owner matches record' },
+              { value: 'trust',     label: 'Trust — Held in trust, confirm owner' },
+              { value: 'entity',    label: 'Entity — LLC/Corp, possible rental' },
+              { value: 'nlor',      label: 'NLOR — No Longer Owner of Record' }
+            ], true)}
           </div>
         </div>
         <div class="detail-section">
@@ -3552,7 +3581,7 @@
         const loanLine = [prLabel(c.pr), c.program].filter(Boolean).join(' / ');
         const refiTag = refiWatchBadge(c);
         const historyTag = loanHistoryBadge(c);
-        const statusBadges = [propBadge(c.proptype), prBadge(c.pr), historyTag, refiTag].filter(x => x && x !== '—').join('');
+        const statusBadges = [propBadge(c.proptype), prBadge(c.pr), historyTag, refiTag, ownershipStatusBadge(c.ownershipStatus)].filter(x => x && x !== '—').join('');
         tr.innerHTML = `
           <td>
             <div class="primary">${borrowerRows[0] || esc(primaryBorrower(c))}</div>
