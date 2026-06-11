@@ -1,13 +1,13 @@
 {
   "source": "Freddie Mac PMMS via FRED API",
   "sourceUrl": "https://fred.stlouisfed.org/series/MORTGAGE30US",
-  "updatedAt": "2026-06-10T21:26:58+00:00",
+  "updatedAt": "2026-06-11T21:10:19+00:00",
   "thirtyYear": {
-    "date": "2026-06-04",
-    "rate": 6.48
+    "date": "2026-06-11",
+    "rate": 6.52
   },
   "fifteenYear": {
-    "date": "2026-06-04",
-    "rate": 5.79
+    "date": "2026-06-11",
+    "rate": 5.84
   }
 }
