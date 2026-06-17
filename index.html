@@ -3416,10 +3416,10 @@
   function exportMailMergeCsv() {
     const { rows } = getMailMergeRecords();
     if (!rows.length) { alert('No mailable records to export.'); return; }
-    const headers = ['Recipient', 'First Name', 'Last Name', 'Address', 'City', 'State', 'Zip', 'Ownership Status'];
+    const headers = ['Recipient', 'First Name', 'Last Name', 'Address', 'City', 'State', 'Zip'];
     const lines = [headers.map(csvCell).join(',')];
     rows.forEach(r => {
-      lines.push([r.recipient, r.first, r.last, r.address, r.city, r.state, r.zip, OWNERSHIP_META[r.status].short].map(csvCell).join(','));
+      lines.push([r.recipient, r.first, r.last, r.address, r.city, r.state, r.zip].map(csvCell).join(','));
     });
     downloadBlob('﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8', `irmae_mailers_${new Date().toISOString().slice(0,10)}.csv`);
   }
