@@ -15,6 +15,11 @@ const RECHECK_AFTER_DAYS = 30;
 // Hard cap on lookups per run (backstop against runaway cost / blocks).
 const MAX_LOOKUPS_PER_RUN = 400;
 
+// Breakage alert: if a county portal returns an owner on ZERO of at least this
+// many routed lookups in a run, treat the provider as broken and alert. Set
+// high enough that a quiet night (few lookups) never false-alarms.
+const ALERT_MIN_SAMPLE = 5;
+
 // Counties with an implemented provider. Add new county slugs here only after
 // adding a provider and route table entries.
 const SUPPORTED_COUNTIES = ['ada', 'canyon'];
@@ -63,6 +68,7 @@ module.exports = {
   REQUEST_TIMEOUT_MS,
   RECHECK_AFTER_DAYS,
   MAX_LOOKUPS_PER_RUN,
+  ALERT_MIN_SAMPLE,
   SUPPORTED_COUNTIES,
   USER_AGENT,
   CITY_COUNTY,

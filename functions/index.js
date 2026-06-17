@@ -17,6 +17,16 @@ const COMMON = {
   timeoutSeconds: 540, // 9 min — the loop is throttled and may run long
 };
 
+// Breakage alerting: when a county portal changes its site and a provider stops
+// returning owners, the run emits a `logger.error('[ownership][ALERT] ...')`
+// line and writes `systemHealth/ownership` in RTDB. Two ways to be notified:
+//   1) Cloud Logging alert (no code): create a log-based alert policy on
+//      severity=ERROR containing "[ownership][ALERT]" -> email/SMS.
+//   2) Instant webhook (Slack/Zapier/email relay): set the env var
+//      OWNERSHIP_ALERT_WEBHOOK_URL (add it to the secrets arrays below and run
+//      `firebase functions:secrets:set OWNERSHIP_ALERT_WEBHOOK_URL`). When unset,
+//      alerting still works via the ERROR log + Firebase node above.
+
 // Nightly scheduled run. 3:15am Mountain time.
 exports.nightlyOwnershipCheck = onSchedule(
   { schedule: '15 3 * * *', timeZone: 'America/Boise', ...COMMON },

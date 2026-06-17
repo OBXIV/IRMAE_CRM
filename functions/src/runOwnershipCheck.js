@@ -4,10 +4,12 @@ const { matchOwnership } = require('./matchOwnership');
 const { routeCounty } = require('./countyRouter');
 const { getProvider } = require('./providers');
 const { addressPatchFromSitus, pickStreetOnlyWinner } = require('./enrichAddress');
+const { detectBrokenProviders, buildAlertMessage, postAlertWebhook } = require('./healthAlert');
 const {
   REQUEST_DELAY_MS,
   RECHECK_AFTER_DAYS,
   MAX_LOOKUPS_PER_RUN,
+  ALERT_MIN_SAMPLE,
   SUPPORTED_COUNTIES,
 } = require('./config');
 
@@ -52,11 +54,20 @@ async function runOwnershipCheck(
     logger = console,
     getProviderForCounty = getProvider,
     delayMs = REQUEST_DELAY_MS,
+    alertWebhookUrl = process.env.OWNERSHIP_ALERT_WEBHOOK_URL || '',
+    fetchImpl = null,
   } = {},
 ) {
   const snap = await db.ref('clients').once('value');
   const clients = snap.val() || {};
   const ids = Object.keys(clients);
+
+  // Per-county scorecard for breakage detection (routable path only).
+  const health = {};
+  const trackHealth = (county) => {
+    if (!health[county]) health[county] = { attempts: 0, owners: 0, errors: 0 };
+    return health[county];
+  };
 
   const summary = {
     scanned: ids.length,
@@ -168,9 +179,12 @@ async function runOwnershipCheck(
     }
 
     summary.looked_up++;
+    const countyHealth = trackHealth(county);
+    countyHealth.attempts++;
     try {
       const result = await provider.lookupOwner(client);
       const ownerName = result && result.ownerName;
+      if (ownerName) countyHealth.owners++;
       const match = matchOwnership(
         ownerName,
         client.borrower1first,
@@ -219,6 +233,7 @@ async function runOwnershipCheck(
       }
     } catch (err) {
       // Network / HTTP / parse failure: leave existing status alone.
+      countyHealth.errors++;
       await db.ref(`clients/${id}`).update({
         ...statusPatchIfMissing(client),
         ownershipCheckStatus: 'lookup_failed',
@@ -231,6 +246,37 @@ async function runOwnershipCheck(
     }
 
     await sleep(delayMs);
+  }
+
+  summary.provider_health = health;
+
+  // Breakage detection + alert. A provider that returned an owner on none of a
+  // meaningful number of routed lookups almost certainly broke (county changed
+  // its site). Emit an ERROR log (wire a Cloud Logging alert to it), record it
+  // in Firebase, and push an optional webhook for instant notification.
+  const broken = detectBrokenProviders(health, ALERT_MIN_SAMPLE);
+  summary.alert = broken.length ? 'provider_broken' : null;
+  if (broken.length) {
+    const message = buildAlertMessage(broken, now);
+    logger.error(`[ownership][ALERT] ${message}`);
+    await db.ref('systemHealth/ownership').set({
+      at: now,
+      alert: 'provider_broken',
+      broken,
+      health,
+      message,
+    }).catch((e) => logger.warn(`[ownership] could not write systemHealth: ${e && e.message}`));
+    const delivered = await postAlertWebhook(alertWebhookUrl, message, fetchImpl);
+    if (alertWebhookUrl && !delivered) {
+      logger.warn('[ownership] alert webhook did not deliver (non-2xx or unreachable)');
+    }
+  } else {
+    // Record a healthy heartbeat so a stale/old timestamp is itself a signal.
+    await db.ref('systemHealth/ownership').set({
+      at: now,
+      alert: null,
+      health,
+    }).catch(() => {});
   }
 
   logger.info(`[ownership] run complete: ${JSON.stringify(summary)}`);

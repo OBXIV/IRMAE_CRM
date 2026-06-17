@@ -10,10 +10,12 @@ function createMockDb(initialClients) {
     clients: JSON.parse(JSON.stringify(initialClients || {})),
   };
   const updates = [];
+  const sets = [];
 
   return {
     data,
     updates,
+    sets,
     ref(path) {
       return {
         once: async (event) => {
@@ -27,6 +29,10 @@ function createMockDb(initialClients) {
           assert.strictEqual(parts[0], 'clients');
           const id = parts[1];
           data.clients[id] = { ...(data.clients[id] || {}), ...patch };
+        },
+        set: async (value) => {
+          sets.push({ path, value });
+          data[path] = value;
         },
       };
     },
@@ -199,4 +205,49 @@ test('street-only ambiguous match goes to needs_review without writing an addres
   assert.strictEqual(db.data.clients.c1.addressEnrichmentStatus, 'needs_review');
   assert.strictEqual(db.data.clients.c1.city, undefined);
   assert.strictEqual(db.data.clients.c1.ownershipStatus, 'unverified');
+});
+
+test('a broken provider (zero owners over the sample) raises an alert and fires the webhook', async () => {
+  const clients = {};
+  for (let i = 0; i < 6; i++) {
+    clients[`c${i}`] = { address: `${100 + i} Main St`, city: 'Boise', borrower1first: 'A', borrower1last: 'B' };
+  }
+  const db = createMockDb(clients);
+
+  const errors = [];
+  const posted = [];
+  const summary = await runOwnershipCheck(db, {
+    now: 1710000000000,
+    logger: { info() {}, warn() {}, error: (m) => errors.push(m) },
+    delayMs: 0,
+    getProviderForCounty: () => ({ lookupOwner: async () => null }), // page "broke"
+    alertWebhookUrl: 'https://hooks.example/alert',
+    fetchImpl: async (url, opts) => { posted.push({ url, body: JSON.parse(opts.body) }); return { ok: true }; },
+  });
+
+  assert.strictEqual(summary.alert, 'provider_broken');
+  assert.strictEqual(summary.provider_health.ada.attempts, 6);
+  assert.strictEqual(summary.provider_health.ada.owners, 0);
+  assert.strictEqual(errors.length, 1);
+  assert.match(errors[0], /\[ALERT\]/);
+  assert.strictEqual(posted.length, 1);
+  assert.match(posted[0].body.text, /ada: 0\/6/);
+  // health snapshot persisted to Firebase
+  const healthWrite = db.sets.find((s) => s.path === 'systemHealth/ownership');
+  assert.strictEqual(healthWrite.value.alert, 'provider_broken');
+});
+
+test('a healthy run writes a heartbeat and raises no alert', async () => {
+  const db = createMockDb({
+    c1: { address: '123 W State St', city: 'Boise', borrower1first: 'John', borrower1last: 'Smith' },
+  });
+  const summary = await runOwnershipCheck(db, {
+    now: 1710000000000,
+    logger: { info() {}, warn() {}, error() { throw new Error('should not alert'); } },
+    delayMs: 0,
+    getProviderForCounty: () => ({ lookupOwner: async () => ({ ownerName: 'SMITH JOHN' }) }),
+  });
+  assert.strictEqual(summary.alert, null);
+  const healthWrite = db.sets.find((s) => s.path === 'systemHealth/ownership');
+  assert.strictEqual(healthWrite.value.alert, null);
 });
