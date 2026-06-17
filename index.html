@@ -410,6 +410,13 @@
     .referral-more:hover { background: rgba(56, 189, 248, 0.2); }
     .page-view[hidden],
     .referral-partners-page[hidden] { display: none !important; }
+    .filter-count { font-size: 0.72rem; opacity: 0.65; font-weight: 600; margin-left: 2px; }
+    .year-filter-btn.active .filter-count { opacity: 0.9; }
+    .filter-group-action { display: flex; align-items: flex-end; }
+    .mailmerge-controls { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; margin: 16px 0; }
+    .mailmerge-toggles { display: flex; flex-direction: column; gap: 6px; }
+    .mailmerge-summary-grid { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 16px 0; }
+    .mailmerge-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto; }
     .referral-partners-page {
       display: grid;
       gap: 18px;
@@ -1284,6 +1291,7 @@
     <div class="utility-menu">
       <button class="btn menu-trigger" id="actionMenuButton" onclick="toggleActionMenu(event)" aria-label="Client menu" aria-expanded="false">☰</button>
       <div class="action-menu" id="actionMenu">
+        <button class="menu-item" onclick="openMailMergePage()">Mailers / Mail Merge</button>
         <button class="menu-item" onclick="importClientsFromMenu()">Import Clients</button>
         <button class="menu-item" onclick="exportClientsFromMenu()">Export Clients</button>
         <button class="menu-item danger" onclick="signOutFromMenu()">Sign Out</button>
@@ -1339,6 +1347,14 @@
       <div class="filter-label">Closing Year</div>
       <div class="year-filter-buttons" id="yearFilterButtons"></div>
       <button class="filter-chip" id="activeYearChip" onclick="clearYearFilter()"></button>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Ownership Status</div>
+      <div class="year-filter-buttons" id="ownershipFilterButtons"></div>
+      <button class="filter-chip" id="activeOwnershipChip" onclick="clearOwnershipFilter()"></button>
+    </div>
+    <div class="filter-group filter-group-action">
+      <button class="btn btn-export" onclick="openMailMergePage()" title="Build a mailing list and export labels / CSV">✉ Mailers</button>
     </div>
     <div class="scope-label" id="scopeLabel">Showing: All Years</div>
   </div>
@@ -1422,6 +1438,66 @@
       <div class="empty-state" id="referralEmptyState" style="display:none">
         <div class="icon">∅</div>
         <p>No referral partner data yet.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-view mailmerge-page" id="mailMergeView" hidden>
+    <div class="page-head">
+      <div>
+        <div class="page-kicker">Mailers</div>
+        <h2>Quarterly Mail Merge</h2>
+      </div>
+      <button class="btn btn-cancel" onclick="closeMailMergePage()">Back to Dashboard</button>
+    </div>
+
+    <div class="mailmerge-controls">
+      <div class="filter-group">
+        <div class="filter-label">Ownership Status</div>
+        <div class="year-filter-buttons" id="mailOwnershipButtons"></div>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Closing Year</div>
+        <div class="year-filter-buttons" id="mailYearButtons"></div>
+      </div>
+      <div class="mailmerge-toggles">
+        <label class="cosigner-check"><input type="checkbox" id="mailExcludeNlor" checked onchange="renderMailMergePage()" /> Exclude NLOR (no longer owner)</label>
+        <label class="cosigner-check"><input type="checkbox" id="mailExcludeDeceased" checked onchange="renderMailMergePage()" /> Exclude deceased-only households</label>
+        <label class="cosigner-check"><input type="checkbox" id="mailRequireAddress" checked onchange="renderMailMergePage()" /> Require mailing address</label>
+        <label class="cosigner-check"><input type="checkbox" id="mailDedupeAddress" onchange="renderMailMergePage()" /> One label per address</label>
+      </div>
+    </div>
+
+    <div class="mailmerge-summary-grid">
+      <div class="partner-summary">
+        <div class="num" id="mail-summary-count">0</div>
+        <div class="lbl">Mailable Records</div>
+      </div>
+      <div class="partner-summary">
+        <div class="num" id="mail-summary-missing">0</div>
+        <div class="lbl">Skipped (no address)</div>
+      </div>
+      <div class="mailmerge-actions">
+        <button class="btn btn-export" onclick="exportMailMergeCsv()">⬇ Export CSV (Mail Merge)</button>
+        <button class="btn btn-export" onclick="exportMailMergeLabels()">⬇ Export Avery 5160 Labels (HTML)</button>
+      </div>
+    </div>
+
+    <div class="referral-table-wrap">
+      <table class="referral-table">
+        <thead>
+          <tr>
+            <th>Recipient</th>
+            <th>Address</th>
+            <th>City / State / Zip</th>
+            <th>Ownership</th>
+          </tr>
+        </thead>
+        <tbody id="mailMergeBody"></tbody>
+      </table>
+      <div class="empty-state" id="mailMergeEmptyState" style="display:none">
+        <div class="icon">✉</div>
+        <p>No mailable records match the current filters.</p>
       </div>
     </div>
   </section>
@@ -1788,6 +1864,7 @@
   let showRefiOnly = false;
   let showReferralPreview = false;
   let activeYearFilter = 'all';
+  let activeOwnershipFilter = 'all';
   let currentPage = 1;
   let pageSize = 50;
   let db = null;
@@ -2499,10 +2576,18 @@
     const sourceClients = currentOnly ? currentClientRows() : sortedClients();
     return sourceClients.filter(c => {
       if (activeYearFilter !== 'all' && closingYear(c) !== activeYearFilter) return false;
+      if (options.includeOwnership !== false && !matchesOwnershipFilter(c)) return false;
       if (!matchesSearch(c, q)) return false;
       if (includeRefi && showRefiOnly && !shouldFlagRefi(c)) return false;
       return true;
     });
+  }
+
+  function matchesOwnershipFilter(c) {
+    if (activeOwnershipFilter === 'all') return true;
+    const status = clientOwnership(c);
+    if (activeOwnershipFilter === 'followup') return status !== 'verified';
+    return status === activeOwnershipFilter;
   }
 
   function fmtRate(r) {
@@ -2883,14 +2968,22 @@
     return `<span class="badge ${cls}">${esc(prLabel(v))}</span>`;
   }
 
+  const OWNERSHIP_META = {
+    'verified':   { cls: 'badge-verified',   label: 'Verified ✓', short: 'Verified' },
+    'trust':      { cls: 'badge-trust',       label: 'Trust',      short: 'Trust' },
+    'entity':     { cls: 'badge-entity',      label: 'Entity',     short: 'Entity' },
+    'nlor':       { cls: 'badge-nlor',        label: 'NLOR',       short: 'NLOR' },
+    'unverified': { cls: 'badge-unverified',  label: 'Unverified', short: 'Unverified' }
+  };
+
+  function clientOwnership(c) {
+    const v = c && c.ownershipStatus;
+    return OWNERSHIP_META[v] ? v : 'unverified';
+  }
+
   function ownershipStatusBadge(v) {
     if (!v || v === 'unverified') return '';
-    const map = {
-      'verified':   { cls: 'badge-verified',   label: 'Verified ✓' },
-      'trust':      { cls: 'badge-trust',       label: 'Trust' },
-      'entity':     { cls: 'badge-entity',      label: 'Entity' },
-      'nlor':       { cls: 'badge-nlor',        label: 'NLOR' }
-    };
+    const map = OWNERSHIP_META;
     const entry = map[v];
     if (!entry) return '';
     return `<span class="badge ${entry.cls}" title="Ownership: ${entry.label}">${entry.label}</span>`;
@@ -3171,6 +3264,194 @@
     document.getElementById('dashboardView').hidden = false;
     updateStats();
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Mail Merge ───────────────────────────────────────────
+  let mailOwnershipFilter = 'all';
+  let mailYearFilter = 'all';
+
+  function openMailMergePage() {
+    closeClientDrawer();
+    closePartnerDrawer();
+    closeActionMenu();
+    document.getElementById('dashboardView').hidden = true;
+    document.getElementById('referralPartnersView').hidden = true;
+    document.getElementById('mailMergeView').hidden = false;
+    renderMailMergePage();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function closeMailMergePage() {
+    document.getElementById('mailMergeView').hidden = true;
+    document.getElementById('dashboardView').hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function setMailOwnership(value) {
+    mailOwnershipFilter = value || 'all';
+    renderMailMergePage();
+  }
+
+  function setMailYear(value) {
+    mailYearFilter = value || 'all';
+    renderMailMergePage();
+  }
+
+  function householdRecipient(c) {
+    const names = [1,2,3,4]
+      .map(n => ({ first: c['borrower' + n + 'first'], last: c['borrower' + n + 'last'], deceased: c['deceased' + n] }))
+      .filter(p => (p.first || p.last) && !p.deceased)
+      .map(p => ({ first: String(p.first || '').trim(), last: String(p.last || '').trim() }));
+    if (!names.length) return primaryBorrower(c);
+    if (names.length === 1) return [names[0].first, names[0].last].filter(Boolean).join(' ');
+    const allSameLast = names.every(p => p.last && p.last.toLowerCase() === names[0].last.toLowerCase());
+    if (allSameLast) {
+      return names.map(p => p.first).filter(Boolean).join(' & ') + ' ' + names[0].last;
+    }
+    return names.map(p => [p.first, p.last].filter(Boolean).join(' ')).join(' & ');
+  }
+
+  function getMailMergeRecords() {
+    const excludeNlor = document.getElementById('mailExcludeNlor')?.checked;
+    const excludeDeceased = document.getElementById('mailExcludeDeceased')?.checked;
+    const requireAddress = document.getElementById('mailRequireAddress')?.checked;
+    const dedupe = document.getElementById('mailDedupeAddress')?.checked;
+
+    let missing = 0;
+    const seen = new Set();
+    const rows = [];
+
+    sortedClients().forEach(c => {
+      const status = clientOwnership(c);
+      if (mailOwnershipFilter === 'followup' && status === 'verified') return;
+      if (mailOwnershipFilter !== 'all' && mailOwnershipFilter !== 'followup' && status !== mailOwnershipFilter) return;
+      if (mailYearFilter !== 'all' && closingYear(c) !== mailYearFilter) return;
+      if (excludeNlor && status === 'nlor') return;
+
+      const livingExists = [1,2,3,4].some(n => (c['borrower' + n + 'first'] || c['borrower' + n + 'last']) && !c['deceased' + n]);
+      if (excludeDeceased && !livingExists) return;
+
+      const address = String(c.address || '').trim();
+      const city = String(c.city || '').trim();
+      const state = String(c.state || '').trim();
+      const zip = String(c.zip || '').trim();
+      const hasAddress = !!(address && (city || zip));
+      if (!hasAddress) {
+        missing++;
+        if (requireAddress) return;
+      }
+
+      if (dedupe && hasAddress) {
+        const key = `${address}|${city}|${state}|${zip}`.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+      }
+
+      const recipient = householdRecipient(c);
+      rows.push({
+        recipient,
+        first: String(c.borrower1first || '').trim(),
+        last: String(c.borrower1last || '').trim(),
+        address, city, state, zip,
+        status,
+        cityLine: [city, state].filter(Boolean).join(', ') + (zip ? ' ' + zip : '')
+      });
+    });
+
+    return { rows, missing };
+  }
+
+  function renderMailMergePage() {
+    const years = getAvailableYears();
+    if (mailYearFilter !== 'all' && !years.includes(mailYearFilter)) mailYearFilter = 'all';
+
+    document.getElementById('mailOwnershipButtons').innerHTML = OWNERSHIP_FILTER_BUTTONS.map(btn => `
+      <button class="year-filter-btn${mailOwnershipFilter === btn.value ? ' active' : ''}"
+        onclick="setMailOwnership('${esc(btn.value)}')" aria-pressed="${mailOwnershipFilter === btn.value}">
+        ${esc(btn.label)}
+      </button>`).join('');
+
+    document.getElementById('mailYearButtons').innerHTML = [{ value: 'all', label: 'All Years' }, ...years.map(y => ({ value: y, label: y }))]
+      .map(btn => `
+      <button class="year-filter-btn${mailYearFilter === btn.value ? ' active' : ''}"
+        onclick="setMailYear('${esc(btn.value)}')" aria-pressed="${mailYearFilter === btn.value}">
+        ${esc(btn.label)}
+      </button>`).join('');
+
+    const { rows, missing } = getMailMergeRecords();
+    document.getElementById('mail-summary-count').textContent = rows.length;
+    document.getElementById('mail-summary-missing').textContent = missing;
+
+    const body = document.getElementById('mailMergeBody');
+    const empty = document.getElementById('mailMergeEmptyState');
+    body.innerHTML = '';
+    empty.style.display = rows.length ? 'none' : 'block';
+
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><div class="primary">${esc(r.recipient)}</div></td>
+        <td>${esc(r.address) || '<span class="sub">—</span>'}</td>
+        <td>${esc(r.cityLine) || '<span class="sub">—</span>'}</td>
+        <td>${ownershipStatusBadge(r.status) || '<span class="badge badge-unverified">Unverified</span>'}</td>`;
+      body.appendChild(tr);
+    });
+  }
+
+  function csvCell(v) {
+    const s = String(v == null ? '' : v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  function downloadBlob(content, type, filename) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportMailMergeCsv() {
+    const { rows } = getMailMergeRecords();
+    if (!rows.length) { alert('No mailable records to export.'); return; }
+    const headers = ['Recipient', 'First Name', 'Last Name', 'Address', 'City', 'State', 'Zip', 'Ownership Status'];
+    const lines = [headers.map(csvCell).join(',')];
+    rows.forEach(r => {
+      lines.push([r.recipient, r.first, r.last, r.address, r.city, r.state, r.zip, OWNERSHIP_META[r.status].short].map(csvCell).join(','));
+    });
+    downloadBlob('﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8', `irmae_mailers_${new Date().toISOString().slice(0,10)}.csv`);
+  }
+
+  function exportMailMergeLabels() {
+    const { rows } = getMailMergeRecords();
+    if (!rows.length) { alert('No mailable records to export.'); return; }
+    const cells = rows.map(r => `
+      <div class="label">
+        <div class="ln name">${esc(r.recipient)}</div>
+        <div class="ln">${esc(r.address)}</div>
+        <div class="ln">${esc(r.cityLine)}</div>
+      </div>`).join('');
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>IRMAE Mailing Labels</title>
+<style>
+  @page { size: letter; margin: 0.5in 0.1875in; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Arial, Helvetica, sans-serif; }
+  .sheet { display: grid; grid-template-columns: repeat(3, 2.625in); grid-auto-rows: 1in; column-gap: 0.125in; }
+  .label { padding: 0.12in 0.18in; overflow: hidden; display: flex; flex-direction: column; justify-content: center; }
+  .ln { font-size: 11pt; line-height: 1.25; }
+  .name { font-weight: 700; }
+  @media print { .toolbar { display: none; } }
+  .toolbar { padding: 12px; background: #f1f5f9; font-family: Arial; }
+  .toolbar button { padding: 8px 16px; font-size: 14px; cursor: pointer; }
+</style></head><body>
+<div class="toolbar">Avery 5160 layout (3 across, 30 per page). <button onclick="window.print()">Print Labels</button></div>
+<div class="sheet">${cells}</div>
+</body></html>`;
+    const w = window.open('', '_blank');
+    if (w) { w.document.write(html); w.document.close(); }
+    else { downloadBlob(html, 'text/html', `irmae_labels_${new Date().toISOString().slice(0,10)}.html`); }
   }
 
   function renderReferralPartnersPage(rows = getReferralPartnerStats(getFilteredClients())) {
@@ -3480,6 +3761,10 @@
     if (referralView && !referralView.hidden) {
       closeReferralPartnersPage();
     }
+    const mailView = document.getElementById('mailMergeView');
+    if (mailView && !mailView.hidden) {
+      closeMailMergePage();
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -3491,6 +3776,63 @@
 
   function clearYearFilter() {
     setYearFilter('all');
+  }
+
+  function setOwnershipFilter(value) {
+    activeOwnershipFilter = value || 'all';
+    currentPage = 1;
+    renderTable();
+  }
+
+  function clearOwnershipFilter() {
+    setOwnershipFilter('all');
+  }
+
+  const OWNERSHIP_FILTER_BUTTONS = [
+    { value: 'all',        label: 'All' },
+    { value: 'followup',   label: 'Needs Follow-up' },
+    { value: 'unverified', label: 'Unverified' },
+    { value: 'verified',   label: 'Verified' },
+    { value: 'trust',      label: 'Trust' },
+    { value: 'entity',     label: 'Entity' },
+    { value: 'nlor',       label: 'NLOR' }
+  ];
+
+  function ownershipFilterLabel(value) {
+    const btn = OWNERSHIP_FILTER_BUTTONS.find(b => b.value === value);
+    return btn ? btn.label : value;
+  }
+
+  function renderOwnershipFilters() {
+    const counts = {};
+    currentClientRows().forEach(c => {
+      const s = clientOwnership(c);
+      counts[s] = (counts[s] || 0) + 1;
+    });
+    const total = currentClientRows().length;
+    const countFor = v => {
+      if (v === 'all') return total;
+      if (v === 'followup') return total - (counts.verified || 0);
+      return counts[v] || 0;
+    };
+
+    document.getElementById('ownershipFilterButtons').innerHTML = OWNERSHIP_FILTER_BUTTONS.map(btn => `
+      <button
+        class="year-filter-btn${activeOwnershipFilter === btn.value ? ' active' : ''}"
+        onclick="setOwnershipFilter('${esc(btn.value)}')"
+        aria-pressed="${activeOwnershipFilter === btn.value}">
+        ${esc(btn.label)} <span class="filter-count">${countFor(btn.value)}</span>
+      </button>
+    `).join('');
+
+    const chip = document.getElementById('activeOwnershipChip');
+    if (activeOwnershipFilter === 'all') {
+      chip.classList.remove('show');
+      chip.textContent = '';
+    } else {
+      chip.classList.add('show');
+      chip.innerHTML = `Ownership: ${esc(ownershipFilterLabel(activeOwnershipFilter))} <span aria-hidden="true">&times;</span>`;
+    }
   }
 
   function setPageSize(value) {
@@ -3537,6 +3879,7 @@
   function renderScopeLabel(total) {
     const search = document.getElementById('searchInput').value.trim();
     const pieces = [activeYearFilter === 'all' ? 'All Years' : `${activeYearFilter} Closings`];
+    if (activeOwnershipFilter !== 'all') pieces.push(`Ownership: ${ownershipFilterLabel(activeOwnershipFilter)}`);
     if (showRefiOnly) pieces.push('Refi Watch');
     if (search) pieces.push(`Search: "${search}"`);
     document.getElementById('scopeLabel').textContent = `Showing: ${pieces.join(' | ')} | ${clientCountLabel(total)}`;
@@ -3566,6 +3909,7 @@
 
     renderReferralOptions();
     renderYearFilters();
+    renderOwnershipFilters();
     const filtered = getFilteredClients();
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     if (currentPage > totalPages) currentPage = totalPages;
