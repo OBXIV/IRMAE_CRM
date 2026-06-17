@@ -417,6 +417,10 @@
     .mailmerge-toggles { display: flex; flex-direction: column; gap: 6px; }
     .mailmerge-summary-grid { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 16px 0; }
     .mailmerge-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+    .partner-summary.actionable { cursor: pointer; transition: border-color .15s, background .15s; }
+    .partner-summary.actionable.active { border-color: rgba(251, 146, 60, 0.6); background: rgba(251, 146, 60, 0.08); }
+    tr.clickable-row { cursor: pointer; }
+    tr.clickable-row:hover { background: rgba(148, 163, 184, 0.08); }
     .referral-partners-page {
       display: grid;
       gap: 18px;
@@ -851,6 +855,8 @@
     .badge-entity    { background: rgba(139, 92, 246, 0.16);  color: #c4b5fd; border-color: rgba(139, 92, 246, 0.36); }
     .badge-nlor      { background: rgba(239, 68, 68, 0.16);   color: #fca5a5; border-color: rgba(239, 68, 68, 0.36); }
     .badge-unverified{ background: rgba(148, 163, 184, 0.13); color: #94a3b8; border-color: rgba(148, 163, 184, 0.28); }
+    .badge-enriched  { background: rgba(56, 189, 248, 0.14);  color: #7dd3fc; border-color: rgba(56, 189, 248, 0.34); }
+    .badge-review    { background: rgba(251, 146, 60, 0.16);  color: #fdba74; border-color: rgba(251, 146, 60, 0.38); }
 
     .actions { display: flex; gap: 8px; }
 
@@ -1473,9 +1479,9 @@
         <div class="num" id="mail-summary-count">0</div>
         <div class="lbl">Mailable Records</div>
       </div>
-      <div class="partner-summary">
+      <div class="partner-summary actionable" id="mail-review-card" onclick="toggleMailReview()" role="button" tabindex="0" title="Show records that need a mailing address fixed">
         <div class="num" id="mail-summary-missing">0</div>
-        <div class="lbl">Skipped (no address)</div>
+        <div class="lbl">Needs Address Review</div>
       </div>
       <div class="mailmerge-actions">
         <button class="btn btn-export" onclick="exportMailMergeCsv()">⬇ Export CSV (Mail Merge)</button>
@@ -2981,6 +2987,24 @@
     return OWNERSHIP_META[v] ? v : 'unverified';
   }
 
+  function hasMailableAddress(c) {
+    return !!(String(c.address || '').trim() && (String(c.city || '').trim() || String(c.zip || '').trim()));
+  }
+
+  function needsAddressReview(c) {
+    return c.addressEnrichmentStatus === 'needs_review' || !hasMailableAddress(c);
+  }
+
+  function addressEnrichmentBadge(c) {
+    if (c.addressEnrichmentStatus === 'enriched') {
+      return `<span class="badge badge-enriched" title="Address auto-filled from county assessor (${esc(c.addressEnrichmentSource || 'county')})">Address auto-filled</span>`;
+    }
+    if (needsAddressReview(c)) {
+      return `<span class="badge badge-review" title="Could not confidently auto-fill a mailing address — needs manual review">Address review</span>`;
+    }
+    return '';
+  }
+
   function ownershipStatusBadge(v) {
     if (!v || v === 'unverified') return '';
     const map = OWNERSHIP_META;
@@ -3269,6 +3293,24 @@
   // ── Mail Merge ───────────────────────────────────────────
   let mailOwnershipFilter = 'all';
   let mailYearFilter = 'all';
+  let mailReviewOnly = false;
+
+  function matchesMailScope(c) {
+    const status = clientOwnership(c);
+    if (mailOwnershipFilter === 'followup' && status === 'verified') return false;
+    if (mailOwnershipFilter !== 'all' && mailOwnershipFilter !== 'followup' && status !== mailOwnershipFilter) return false;
+    if (mailYearFilter !== 'all' && closingYear(c) !== mailYearFilter) return false;
+    return true;
+  }
+
+  function getAddressReviewRecords() {
+    return sortedClients().filter(c => matchesMailScope(c) && needsAddressReview(c));
+  }
+
+  function toggleMailReview() {
+    mailReviewOnly = !mailReviewOnly;
+    renderMailMergePage();
+  }
 
   function openMailMergePage() {
     closeClientDrawer();
@@ -3317,15 +3359,12 @@
     const requireAddress = document.getElementById('mailRequireAddress')?.checked;
     const dedupe = document.getElementById('mailDedupeAddress')?.checked;
 
-    let missing = 0;
     const seen = new Set();
     const rows = [];
 
     sortedClients().forEach(c => {
       const status = clientOwnership(c);
-      if (mailOwnershipFilter === 'followup' && status === 'verified') return;
-      if (mailOwnershipFilter !== 'all' && mailOwnershipFilter !== 'followup' && status !== mailOwnershipFilter) return;
-      if (mailYearFilter !== 'all' && closingYear(c) !== mailYearFilter) return;
+      if (!matchesMailScope(c)) return;
       if (excludeNlor && status === 'nlor') return;
 
       const livingExists = [1,2,3,4].some(n => (c['borrower' + n + 'first'] || c['borrower' + n + 'last']) && !c['deceased' + n]);
@@ -3336,10 +3375,7 @@
       const state = String(c.state || '').trim();
       const zip = String(c.zip || '').trim();
       const hasAddress = !!(address && (city || zip));
-      if (!hasAddress) {
-        missing++;
-        if (requireAddress) return;
-      }
+      if (!hasAddress && requireAddress) return;
 
       if (dedupe && hasAddress) {
         const key = `${address}|${city}|${state}|${zip}`.toLowerCase();
@@ -3358,7 +3394,7 @@
       });
     });
 
-    return { rows, missing };
+    return { rows };
   }
 
   function renderMailMergePage() {
@@ -3378,15 +3414,41 @@
         ${esc(btn.label)}
       </button>`).join('');
 
-    const { rows, missing } = getMailMergeRecords();
+    const { rows } = getMailMergeRecords();
+    const reviewRecords = getAddressReviewRecords();
     document.getElementById('mail-summary-count').textContent = rows.length;
-    document.getElementById('mail-summary-missing').textContent = missing;
+    document.getElementById('mail-summary-missing').textContent = reviewRecords.length;
+    document.getElementById('mail-review-card').classList.toggle('active', mailReviewOnly);
 
     const body = document.getElementById('mailMergeBody');
     const empty = document.getElementById('mailMergeEmptyState');
     body.innerHTML = '';
-    empty.style.display = rows.length ? 'none' : 'block';
 
+    if (mailReviewOnly) {
+      empty.style.display = reviewRecords.length ? 'none' : 'block';
+      empty.querySelector('p').textContent = 'No records need address review in this scope. Nicely done.';
+      reviewRecords.forEach(c => {
+        const missingParts = ['city','state','zip'].filter(k => !String(c[k] || '').trim());
+        const need = c.addressEnrichmentStatus === 'needs_review' && !missingParts.length
+          ? 'County match was ambiguous'
+          : (missingParts.length ? 'Missing ' + missingParts.join(', ') : 'No mailing address');
+        const tr = document.createElement('tr');
+        tr.className = 'clickable-row';
+        tr.tabIndex = 0;
+        tr.addEventListener('click', () => openClientDrawer(c.id));
+        tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openClientDrawer(c.id); } });
+        tr.innerHTML = `
+          <td><div class="primary">${esc(householdRecipient(c))}</div></td>
+          <td>${esc(String(c.address || '').trim()) || '<span class="sub">— no street —</span>'}</td>
+          <td><span class="sub">${esc(need)}</span></td>
+          <td>${addressEnrichmentBadge(c) || '<span class="badge badge-review">Review</span>'}</td>`;
+        body.appendChild(tr);
+      });
+      return;
+    }
+
+    empty.style.display = rows.length ? 'none' : 'block';
+    empty.querySelector('p').textContent = 'No mailable records match the current filters.';
     rows.forEach(r => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -3627,7 +3689,8 @@
       programBadge(c.program),
       loanHistoryBadge(c),
       refiWatchBadge(c),
-      ownershipStatusBadge(c.ownershipStatus)
+      ownershipStatusBadge(c.ownershipStatus),
+      addressEnrichmentBadge(c)
     ].filter(x => x && x !== '—').join('');
     const propertyOptions = [
       { value: '', label: 'Select property type' },

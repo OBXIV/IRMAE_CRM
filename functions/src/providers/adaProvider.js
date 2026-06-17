@@ -141,6 +141,9 @@ async function lookupOwner(client) {
   const parcelNumber = results[0] && results[0].parcelNumber;
   if (!parcelNumber) return null;
 
+  // The search row already carries the full situs ("STREET    CITY, ST ZIP").
+  const situsRaw = (results[0] && results[0].address || '').replace(/\s+/g, ' ').trim();
+
   const detail = await httpGet(
     `${DETAIL_URL}?parcel=${encodeURIComponent(parcelNumber)}&year=${encodeURIComponent(year)}`,
     {
@@ -149,7 +152,8 @@ async function lookupOwner(client) {
     },
   );
   const ownerName = extractOwnerFromDetails(detail.text).replace(/\s+/g, ' ').trim();
-  return ownerName ? { ownerName } : null;
+  if (!ownerName) return null;
+  return situsRaw ? { ownerName, situsRaw } : { ownerName };
 }
 
 module.exports = {

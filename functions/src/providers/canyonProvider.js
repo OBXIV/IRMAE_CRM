@@ -42,7 +42,13 @@ async function lookupOwner(client) {
     const data = JSON.parse(res.text);
     const first = data && Array.isArray(data.items) ? data.items[0] : null;
     const owner = first && first.fields && first.fields.Owner;
-    if (owner) return { ownerName: String(owner).replace(/\s+/g, ' ').trim() };
+    if (owner) {
+      const situsRaw = first.fields.Situs
+        ? String(first.fields.Situs).replace(/\s+/g, ' ').trim()
+        : '';
+      const ownerName = String(owner).replace(/\s+/g, ' ').trim();
+      return situsRaw ? { ownerName, situsRaw } : { ownerName };
+    }
   }
   return null;
 }

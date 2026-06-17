@@ -115,3 +115,88 @@ test('supported lookup writes checked status on confident result', async () => {
   assert.strictEqual(db.data.clients.c1.ownershipCheckStatus, 'checked');
   assert.strictEqual(db.data.clients.c1.ownershipSupportedCounty, true);
 });
+
+test('routable record backfills only missing mailing parts from situs', async () => {
+  const db = createMockDb({
+    c1: {
+      address: '1115 Albany St',
+      zip: '83605', // routes to canyon; city/state missing
+      borrower1first: 'John',
+      borrower1last: 'Smith',
+    },
+  });
+
+  const summary = await runOwnershipCheck(db, {
+    now: 1710000000000,
+    logger: { info() {}, warn() {} },
+    delayMs: 0,
+    getProviderForCounty: () => ({
+      lookupOwner: async () => ({ ownerName: 'SMITH JOHN', situsRaw: '1115 ALBANY ST CALDWELL ID 83605' }),
+    }),
+  });
+
+  assert.strictEqual(summary.address_enriched, 1);
+  assert.strictEqual(db.data.clients.c1.city, 'Caldwell');
+  assert.strictEqual(db.data.clients.c1.state, 'ID');
+  assert.strictEqual(db.data.clients.c1.zip, '83605'); // pre-existing, unchanged
+  assert.strictEqual(db.data.clients.c1.addressEnrichmentStatus, 'enriched');
+});
+
+test('street-only record is resolved when exactly one county verifies', async () => {
+  const db = createMockDb({
+    c1: {
+      address: '1115 Albany St', // no city/zip/county
+      borrower1first: 'John',
+      borrower1last: 'Smith',
+    },
+  });
+
+  const providers = {
+    ada: { lookupOwner: async () => null },
+    canyon: { lookupOwner: async () => ({ ownerName: 'SMITH JOHN', situsRaw: '1115 ALBANY ST CALDWELL ID 83605' }) },
+  };
+
+  const summary = await runOwnershipCheck(db, {
+    now: 1710000000000,
+    logger: { info() {}, warn() {} },
+    delayMs: 0,
+    getProviderForCounty: (county) => providers[county] || null,
+  });
+
+  assert.strictEqual(summary.street_only_probed, 1);
+  assert.strictEqual(summary.address_enriched, 1);
+  assert.strictEqual(summary.updated, 1);
+  assert.strictEqual(db.data.clients.c1.city, 'Caldwell');
+  assert.strictEqual(db.data.clients.c1.zip, '83605');
+  assert.strictEqual(db.data.clients.c1.county, 'canyon');
+  assert.strictEqual(db.data.clients.c1.ownershipStatus, 'verified');
+  assert.strictEqual(db.data.clients.c1.addressEnrichmentStatus, 'enriched');
+});
+
+test('street-only ambiguous match goes to needs_review without writing an address', async () => {
+  const db = createMockDb({
+    c1: {
+      address: '100 Main St',
+      borrower1first: 'John',
+      borrower1last: 'Smith',
+    },
+  });
+
+  const providers = {
+    ada: { lookupOwner: async () => ({ ownerName: 'SMITH JOHN', situsRaw: '100 MAIN ST BOISE ID 83702' }) },
+    canyon: { lookupOwner: async () => ({ ownerName: 'SMITH JOHN', situsRaw: '100 MAIN ST NAMPA ID 83651' }) },
+  };
+
+  const summary = await runOwnershipCheck(db, {
+    now: 1710000000000,
+    logger: { info() {}, warn() {} },
+    delayMs: 0,
+    getProviderForCounty: (county) => providers[county] || null,
+  });
+
+  assert.strictEqual(summary.address_needs_review, 1);
+  assert.strictEqual(summary.address_enriched, 0);
+  assert.strictEqual(db.data.clients.c1.addressEnrichmentStatus, 'needs_review');
+  assert.strictEqual(db.data.clients.c1.city, undefined);
+  assert.strictEqual(db.data.clients.c1.ownershipStatus, 'unverified');
+});
