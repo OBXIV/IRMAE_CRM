@@ -179,9 +179,22 @@ function loadClients(fileArg) {
   if (fileArg) {
     raw = fs.readFileSync(fileArg, 'utf8');
   } else {
-    raw = execSync('firebase database:get /clients --project iramecrm', {
-      encoding: 'utf8', maxBuffer: 64 * 1024 * 1024
-    });
+    // Scheduled (non-login) runs don't inherit the interactive PATH, so the
+    // homebrew/npm bin dirs that hold the firebase CLI may be missing. Add the
+    // common locations and surface a clear error instead of dying silently.
+    const env = { ...process.env };
+    env.PATH = ['/opt/homebrew/bin', '/usr/local/bin', env.PATH].filter(Boolean).join(':');
+    try {
+      raw = execSync('firebase database:get /clients --project iramecrm', {
+        encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, env
+      });
+    } catch (err) {
+      const msg = String(err.stderr || err.message || err);
+      if (/command not found|ENOENT/.test(msg)) {
+        throw new Error('firebase CLI not found on PATH. Install it or add its bin dir to PATH for scheduled runs.\n' + msg);
+      }
+      throw new Error('firebase database:get failed (auth or network). Run `firebase login` if this persists.\n' + msg);
+    }
   }
   const obj = JSON.parse(raw);
   return Object.keys(obj).map(id => ({ id, ...obj[id] }));
