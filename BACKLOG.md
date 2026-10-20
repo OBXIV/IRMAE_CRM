@@ -21,6 +21,9 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 
 - [ ] **Fill mailing addresses on non-primary records.** 48 second home / investment records show "Needs mailing address". 9 have a one-click suggestion (Mailers > address review, or the drawer); the other 39 need the address entered by hand.
 
+- [ ] **Mobile pass 2: Mailers and Referral Partners as cards.** Both are still 920px-wide tables that scroll sideways on a phone. Convert to cards like the client list.
+- [ ] **Check mobile on a real iPhone.** Emulator testing done; confirm Safari specifics (notch, collapsing toolbar, form Save bar) on her phone.
+
 ### P2
 - [ ] Normalize non-standard property type values: `Inv` (2 records, treated as investment), plus one `P` and one `R` that look like loan type entered in the wrong field.
 - [ ] Optional instant alerts: set `OWNERSHIP_ALERT_WEBHOOK_URL` and add it to the function's secrets.
@@ -38,6 +41,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 
 | Date | Change |
 |---|---|
+| 2026-10-20 | Mobile pass 1: client list on the first phone screen (compact stats and rates, collapsible filters), no zoom-on-tap, 44px touch targets, tighter header, form Save bar pinned to bottom |
 | 2026-10-20 | One-click mailing address suggestion from the borrower's current owner-occupied loan (skips homes no longer owned); review-list rows open the exact record |
 | 2026-10-20 | Rebased onto origin and pushed the pending June work (snapshot tool, PATH fix, docs) with this release |
 | 2026-10-20 | Mailing address for second home / investment properties: form, drawer, import columns, mailers use it, flagged when missing |
