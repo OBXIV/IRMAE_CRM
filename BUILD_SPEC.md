@@ -96,6 +96,7 @@ Identity and contact
 Property and address
 - `address` — street line (the anchor for ownership lookups)
 - `city`, `state`, `zip`, `county` — used for county routing; may be enriched
+- `mailingaddress`, `mailingcity`, `mailingstate`, `mailingzip` — owner's mailing address, shown and used only when `proptype` is `2nd`, `IP`, or legacy `Inv`. Mailers use it instead of the property address; the backend never reads it
 
 Pipeline
 - `closing` — closing date (indexed)

@@ -1755,6 +1755,30 @@
       </div>
     </div>
 
+    <div id="mailingAddressSection" hidden>
+      <div class="section-label">Mailing Address</div>
+      <div class="form-grid">
+        <div class="field full">
+          <label>Street Address</label>
+          <input type="text" id="f-mailingaddress" placeholder="Where the owner receives mail" />
+        </div>
+      </div>
+      <div class="form-grid-3" style="margin-top:14px">
+        <div class="field">
+          <label>City</label>
+          <input type="text" id="f-mailingcity" placeholder="Boise" />
+        </div>
+        <div class="field">
+          <label>State</label>
+          <input type="text" id="f-mailingstate" placeholder="ID" maxlength="2" />
+        </div>
+        <div class="field">
+          <label>Zip</label>
+          <input type="text" id="f-mailingzip" placeholder="83704" maxlength="10" />
+        </div>
+      </div>
+    </div>
+
     <div class="section-label">Birthdays</div>
     <div class="form-grid">
       <div class="field">
@@ -2991,11 +3015,33 @@
     return !!(String(c.address || '').trim() && (String(c.city || '').trim() || String(c.zip || '').trim()));
   }
 
+  const NON_PRIMARY_PROPTYPES = ['2nd', 'ip', 'inv'];
+
+  function isNonPrimary(proptype) {
+    return NON_PRIMARY_PROPTYPES.includes(String(proptype || '').trim().toLowerCase());
+  }
+
+  function hasMailingAddress(c) {
+    return !!(String(c.mailingaddress || '').trim() && (String(c.mailingcity || '').trim() || String(c.mailingzip || '').trim()));
+  }
+
+  function needsMailingAddress(c) {
+    return isNonPrimary(c.proptype) && !hasMailingAddress(c);
+  }
+
+  function syncMailingSection(selectId, sectionId) {
+    const section = document.getElementById(sectionId);
+    if (section) section.hidden = !isNonPrimary(document.getElementById(selectId)?.value);
+  }
+
   function needsAddressReview(c) {
-    return c.addressEnrichmentStatus === 'needs_review' || !hasMailableAddress(c);
+    return c.addressEnrichmentStatus === 'needs_review' || !hasMailableAddress(c) || needsMailingAddress(c);
   }
 
   function addressEnrichmentBadge(c) {
+    if (needsMailingAddress(c)) {
+      return `<span class="badge badge-review" title="Second home / investment property: add the owner's mailing address">Needs mailing address</span>`;
+    }
     if (c.addressEnrichmentStatus === 'enriched') {
       return `<span class="badge badge-enriched" title="Address auto-filled from county assessor (${esc(c.addressEnrichmentSource || 'county')})">Address auto-filled</span>`;
     }
@@ -3155,6 +3201,10 @@
       city: drawerValue('city'),
       state: drawerValue('state'),
       zip: drawerValue('zip'),
+      mailingaddress: drawerValue('mailingaddress'),
+      mailingcity: drawerValue('mailingcity'),
+      mailingstate: drawerValue('mailingstate'),
+      mailingzip: drawerValue('mailingzip'),
       proptype: drawerValue('proptype'),
       ownershipStatus: drawerValue('ownershipStatus') || 'unverified',
       pr: drawerValue('pr'),
@@ -3370,10 +3420,11 @@
       const livingExists = [1,2,3,4].some(n => (c['borrower' + n + 'first'] || c['borrower' + n + 'last']) && !c['deceased' + n]);
       if (excludeDeceased && !livingExists) return;
 
-      const address = String(c.address || '').trim();
-      const city = String(c.city || '').trim();
-      const state = String(c.state || '').trim();
-      const zip = String(c.zip || '').trim();
+      const mailing = isNonPrimary(c.proptype) && hasMailingAddress(c);
+      const address = String((mailing ? c.mailingaddress : c.address) || '').trim();
+      const city = String((mailing ? c.mailingcity : c.city) || '').trim();
+      const state = String((mailing ? c.mailingstate : c.state) || '').trim();
+      const zip = String((mailing ? c.mailingzip : c.zip) || '').trim();
       const hasAddress = !!(address && (city || zip));
       if (!hasAddress && requireAddress) return;
 
@@ -3389,6 +3440,7 @@
         first: String(c.borrower1first || '').trim(),
         last: String(c.borrower1last || '').trim(),
         address, city, state, zip,
+        mailing,
         status,
         cityLine: [city, state].filter(Boolean).join(', ') + (zip ? ' ' + zip : '')
       });
@@ -3431,7 +3483,8 @@
         const missingParts = ['city','state','zip'].filter(k => !String(c[k] || '').trim());
         const need = c.addressEnrichmentStatus === 'needs_review' && !missingParts.length
           ? 'County match was ambiguous'
-          : (missingParts.length ? 'Missing ' + missingParts.join(', ') : 'No mailing address');
+          : (missingParts.length ? 'Missing ' + missingParts.join(', ')
+            : (needsMailingAddress(c) ? 'Needs owner mailing address (2nd home / investment)' : 'No mailing address'));
         const tr = document.createElement('tr');
         tr.className = 'clickable-row';
         tr.tabIndex = 0;
@@ -3453,7 +3506,7 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><div class="primary">${esc(r.recipient)}</div></td>
-        <td>${esc(r.address) || '<span class="sub">—</span>'}</td>
+        <td>${esc(r.address) || '<span class="sub">—</span>'}${r.mailing ? ' <span class="sub">(mailing)</span>' : ''}</td>
         <td>${esc(r.cityLine) || '<span class="sub">—</span>'}</td>
         <td>${ownershipStatusBadge(r.status) || '<span class="badge badge-unverified">Unverified</span>'}</td>`;
       body.appendChild(tr);
@@ -3751,6 +3804,15 @@
             ], true)}
           </div>
         </div>
+        <div class="detail-section" id="drawerMailingSection"${isNonPrimary(c.proptype) ? '' : ' hidden'}>
+          <h3>Mailing Address</h3>
+          <div class="detail-grid">
+            ${drawerInputField('Street Address', 'mailingaddress', c.mailingaddress, 'text', '', true)}
+            ${drawerInputField('City', 'mailingcity', c.mailingcity)}
+            ${drawerInputField('State', 'mailingstate', c.mailingstate, 'text', 'maxlength="2"')}
+            ${drawerInputField('Zip', 'mailingzip', c.mailingzip, 'text', 'maxlength="10"')}
+          </div>
+        </div>
         <div class="detail-section">
           <h3>Loan Details</h3>
           <div class="detail-grid">
@@ -3787,6 +3849,7 @@
         <button class="btn btn-cancel" onclick="closeClientDrawer()">Close</button>
       </div>`;
     initDrawerBadgeSelects();
+    document.getElementById('drawer-proptype')?.addEventListener('change', () => syncMailingSection('drawer-proptype', 'drawerMailingSection'));
   }
 
   function initDrawerBadgeSelects() {
@@ -4092,6 +4155,7 @@
                   'borrower1first','borrower1last','borrower2first','borrower2last',
                   'borrower3first','borrower3last','borrower4first','borrower4last',
                   'address','city','state','zip',
+                  'mailingaddress','mailingcity','mailingstate','mailingzip',
                   'cell1','email1','birthday1','cell2','email2','birthday2',
                   'cell3','email3','cell4','email4'];
 
@@ -4156,6 +4220,7 @@
 
     document.getElementById('f-proptype')._showShort?.();
     document.getElementById('f-pr')._showShort?.();
+    syncMailingSection('f-proptype', 'mailingAddressSection');
 
     document.getElementById('modalOverlay').classList.add('open');
     document.getElementById('f-borrower1first').focus();
@@ -4263,6 +4328,10 @@
     city: ['City', 'Property City'],
     state: ['State', 'Property State'],
     zip: ['Zip', 'ZIP', 'Zip Code', 'Postal Code'],
+    mailingaddress: ['Mailing Address', 'Mailing Street', 'Mail Address', 'Owner Mailing Address'],
+    mailingcity: ['Mailing City', 'Mail City'],
+    mailingstate: ['Mailing State', 'Mail State'],
+    mailingzip: ['Mailing Zip', 'Mailing Zip Code', 'Mail Zip'],
     cell1: ['Cell', 'Phone', 'Mobile', 'Borrower Cell', 'Borrower 1 Cell', 'Borrower Phone', 'Borrower 1 Phone', 'Borrower 1 Mobile'],
     email1: ['Email', 'Borrower Email', 'Borrower 1 Email'],
     birthday1: ['Birthday', 'DOB', 'Date of Birth', 'Borrower Birthday', 'Borrower 1 Birthday'],
@@ -4551,6 +4620,10 @@
     setImportField(client, 'city', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.city));
     setImportField(client, 'state', normalizeImportState(importValue(row, headerKeys, IMPORT_FIELD_ALIASES.state)));
     setImportField(client, 'zip', normalizeImportZip(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.zip)));
+    setImportField(client, 'mailingaddress', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.mailingaddress));
+    setImportField(client, 'mailingcity', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.mailingcity));
+    setImportField(client, 'mailingstate', normalizeImportState(importValue(row, headerKeys, IMPORT_FIELD_ALIASES.mailingstate)));
+    setImportField(client, 'mailingzip', normalizeImportZip(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.mailingzip)));
     setImportField(client, 'cell1', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.cell1));
     setImportField(client, 'email1', importValue(row, headerKeys, IMPORT_FIELD_ALIASES.email1));
     setImportField(client, 'birthday1', normalizeImportDate(importValueRaw(row, headerKeys, IMPORT_FIELD_ALIASES.birthday1)));
@@ -4862,6 +4935,7 @@
 
   initShortSelect('f-proptype');
   initShortSelect('f-pr');
+  document.getElementById('f-proptype').addEventListener('change', () => syncMailingSection('f-proptype', 'mailingAddressSection'));
 
   // ── Add Borrower 3 / 4 ───────────────────────────────────
   let borrowerCount = 2;
