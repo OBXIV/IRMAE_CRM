@@ -595,6 +595,18 @@
       line-height: 1.45;
       margin: -4px 0 12px;
     }
+    .mailing-suggestion {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 12px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      margin: -4px 0 12px;
+    }
+    .mailing-suggestion strong { color: var(--text); font-weight: 600; }
+    td .mailing-suggestion { margin: 6px 0 0; }
 
     .market-panel {
       display: grid;
@@ -3029,6 +3041,73 @@
     return isNonPrimary(c.proptype) && !hasMailingAddress(c);
   }
 
+  // Most recent owner-occupied loan for a shared borrower at a different property,
+  // skipping homes they no longer own. A suggestion only; the user confirms it.
+  function suggestedMailingAddress(c) {
+    if (!needsMailingAddress(c)) return null;
+    const home = clients
+      .filter(o => o.id !== c.id
+        && String(o.proptype || '').trim().toUpperCase() === 'O'
+        && clientOwnership(o) !== 'nlor'
+        && hasMailableAddress(o)
+        && !propertiesMatch(c, o)
+        && hasSharedBorrower(c, o))
+      .sort(compareLoansNewestFirst)[0];
+    if (!home) return null;
+    return {
+      address: String(home.address || '').trim(),
+      city: String(home.city || '').trim(),
+      state: String(home.state || '').trim(),
+      zip: String(home.zip || '').trim(),
+      closing: home.closing
+    };
+  }
+
+  function mailingSuggestionHtml(s, onclick) {
+    return `
+      <div class="mailing-suggestion">
+        <span>Primary residence on file: <strong>${esc(fullAddress(s))}</strong>${s.closing ? ` (owner-occupied loan, ${esc(fmtDate(s.closing))})` : ''}</span>
+        <button type="button" class="btn btn-edit" onclick="${onclick}" onkeydown="event.stopPropagation()">Use as mailing address</button>
+      </div>`;
+  }
+
+  async function useSuggestedMailingAddress() {
+    const c = clients.find(x => x.id === selectedClientId);
+    const s = c && suggestedMailingAddress(c);
+    if (!s) return;
+    ['address', 'city', 'state', 'zip'].forEach(k => {
+      const el = document.getElementById('drawer-mailing' + k);
+      if (el) el.value = s[k];
+    });
+    await saveDrawerEdits();
+  }
+
+  async function applySuggestedMailingAddress(id) {
+    if (!db || !currentUser) { alert('Please sign in first.'); return; }
+    const c = clients.find(x => x.id === id);
+    const s = c && suggestedMailingAddress(c);
+    if (!s) return;
+    const updates = {
+      mailingaddress: s.address,
+      mailingcity: s.city,
+      mailingstate: s.state,
+      mailingzip: s.zip,
+      updatedAt: Date.now()
+    };
+    try {
+      await db.ref(CLIENTS_PATH + '/' + id).update(updates);
+      Object.assign(c, updates);
+      invalidateClientViewCache();
+      renderTable();
+      renderMailMergePage();
+      showBanner('Mailing address saved.');
+      setTimeout(hideBanner, 1800);
+    } catch (err) {
+      alert('Could not save the mailing address. Please try again.');
+      console.error(err);
+    }
+  }
+
   function syncMailingSection(selectId, sectionId) {
     const section = document.getElementById(sectionId);
     if (section) section.hidden = !isNonPrimary(document.getElementById(selectId)?.value);
@@ -3485,15 +3564,16 @@
           ? 'County match was ambiguous'
           : (missingParts.length ? 'Missing ' + missingParts.join(', ')
             : (needsMailingAddress(c) ? 'Needs owner mailing address (2nd home / investment)' : 'No mailing address'));
+        const suggestion = suggestedMailingAddress(c);
         const tr = document.createElement('tr');
         tr.className = 'clickable-row';
         tr.tabIndex = 0;
-        tr.addEventListener('click', () => openClientDrawer(c.id));
-        tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openClientDrawer(c.id); } });
+        tr.addEventListener('click', () => openClientDrawer(c.id, false));
+        tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openClientDrawer(c.id, false); } });
         tr.innerHTML = `
           <td><div class="primary">${esc(householdRecipient(c))}</div></td>
           <td>${esc(String(c.address || '').trim()) || '<span class="sub">— no street —</span>'}</td>
-          <td><span class="sub">${esc(need)}</span></td>
+          <td><span class="sub">${esc(need)}</span>${suggestion ? mailingSuggestionHtml(suggestion, `event.stopPropagation(); applySuggestedMailingAddress('${esc(c.id)}')`) : ''}</td>
           <td>${addressEnrichmentBadge(c) || '<span class="badge badge-review">Review</span>'}</td>`;
         body.appendChild(tr);
       });
@@ -3806,6 +3886,7 @@
         </div>
         <div class="detail-section" id="drawerMailingSection"${isNonPrimary(c.proptype) ? '' : ' hidden'}>
           <h3>Mailing Address</h3>
+          ${(() => { const s = suggestedMailingAddress(c); return s ? mailingSuggestionHtml(s, 'useSuggestedMailingAddress()') : ''; })()}
           <div class="detail-grid">
             ${drawerInputField('Street Address', 'mailingaddress', c.mailingaddress, 'text', '', true)}
             ${drawerInputField('City', 'mailingcity', c.mailingcity)}

@@ -19,7 +19,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 - [ ] **Work down address needs-review queue.** 252 records flagged `needs_review`, flat since at least 2026-10-15. Consider a review-queue view in the app so they can be cleared in one pass.
 - [ ] **Confirm the log-based alert policy exists** for `[ownership][ALERT]` (DOCUMENTATION.md section 7). The Sep 13 alert does not appear to have reached anyone.
 
-- [ ] **Fill mailing addresses on non-primary records.** 48 second home / investment records now show "Needs mailing address". 17 of them have an owner-occupied loan for the same borrower at another address, which is a likely mailing address; offer those as one-click suggestions rather than auto-writing.
+- [ ] **Fill mailing addresses on non-primary records.** 48 second home / investment records show "Needs mailing address". 9 have a one-click suggestion (Mailers > address review, or the drawer); the other 39 need the address entered by hand.
 
 ### P2
 - [ ] Normalize non-standard property type values: `Inv` (2 records, treated as investment), plus one `P` and one `R` that look like loan type entered in the wrong field.
@@ -38,6 +38,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 
 | Date | Change |
 |---|---|
+| 2026-10-20 | One-click mailing address suggestion from the borrower's current owner-occupied loan (skips homes no longer owned); review-list rows open the exact record |
 | 2026-10-20 | Rebased onto origin and pushed the pending June work (snapshot tool, PATH fix, docs) with this release |
 | 2026-10-20 | Mailing address for second home / investment properties: form, drawer, import columns, mailers use it, flagged when missing |
 | 2026-10-20 | Status audit: found nightly job stalled since 09-13; verified Ada and Canyon scrapers working |
