@@ -1256,8 +1256,49 @@
       .pagination-controls { justify-content: flex-start; }
       .referral-preview-head,
       .page-head { flex-direction: column; align-items: stretch; }
-      .referral-preview-list,
-      .partner-summary-grid { grid-template-columns: 1fr; }
+      .referral-preview-list { grid-template-columns: 1fr; }
+      .partner-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+      .partner-summary { padding: 10px 12px; min-width: 0; }
+      .partner-summary .num { font-size: 1.2rem; }
+      .partner-summary .lbl { font-size: 0.62rem; }
+      .mailmerge-summary-grid { gap: 8px; margin: 12px 0; }
+      .mailmerge-summary-grid > .partner-summary { flex: 1 1 0; }
+      .mailmerge-actions { flex: 1 1 100%; margin-left: 0; }
+      .mailmerge-actions .btn { flex: 1 1 100%; white-space: normal; }
+      /* Referral Partners and Mailers: each table row becomes a card */
+      .referral-table { display: block; min-width: 0; }
+      .referral-table thead { display: none; }
+      .referral-table tbody { display: grid; gap: 10px; padding: 10px; }
+      .referral-table tbody tr {
+        display: grid;
+        gap: 4px 12px;
+        padding: 13px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: rgba(8, 13, 23, 0.48);
+        box-shadow: none;
+      }
+      .referral-table td { display: block; padding: 0; min-width: 0; overflow-wrap: anywhere; }
+      #referralPartnersBody tr {
+        grid-template-columns: auto 1fr 1fr;
+        grid-template-areas: "rank name name" ". loans volume" ". purchases refis";
+      }
+      #referralPartnersBody td:nth-child(1) { grid-area: rank; width: auto; }
+      #referralPartnersBody td:nth-child(2) { grid-area: name; }
+      #referralPartnersBody td:nth-child(3) { grid-area: loans; }
+      #referralPartnersBody td:nth-child(4) { grid-area: volume; }
+      #referralPartnersBody td:nth-child(5) { grid-area: purchases; }
+      #referralPartnersBody td:nth-child(6) { grid-area: refis; }
+      #referralPartnersBody td:nth-child(n+3) { color: var(--muted); font-size: 0.8rem; }
+      #referralPartnersBody td[data-label]::after { content: ' ' attr(data-label); }
+      #mailMergeBody tr {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "recipient status" "address address" "detail detail";
+      }
+      #mailMergeBody td:nth-child(1) { grid-area: recipient; }
+      #mailMergeBody td:nth-child(2) { grid-area: address; }
+      #mailMergeBody td:nth-child(3) { grid-area: detail; }
+      #mailMergeBody td:nth-child(4) { grid-area: status; }
       .form-grid .full { grid-column: 1; }
       header { padding: 8px 16px; }
       .brand-logo { height: 40px; max-width: 68vw; }
@@ -3725,9 +3766,9 @@
         <td class="rank-cell">#${row.rank}</td>
         <td><div class="primary">${esc(row.name)}</div></td>
         <td>${loanCountLabel(row.count)}</td>
-        <td>${fmtCompactMoney(row.volume)}</td>
-        <td>${row.purchases}</td>
-        <td>${row.refis}</td>`;
+        <td data-label="volume">${fmtCompactMoney(row.volume)}</td>
+        <td data-label="${row.purchases === 1 ? 'Purchase' : 'Purchases'}">${row.purchases}</td>
+        <td data-label="${row.refis === 1 ? 'Refinance' : 'Refinances'}">${row.refis}</td>`;
       body.appendChild(tr);
     });
   }
