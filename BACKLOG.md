@@ -15,7 +15,6 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 - [ ] **Stale-heartbeat check.** Have `scripts/ownership-snapshot.js` read `/systemHealth/ownership.at` and flag it when older than 36h. Today alerts only fire on a failed run, so a job that never runs goes unnoticed (it did, for 5 weeks).
 
 ### P1
-- [ ] **Decide snapshot storage.** Uncommitted change makes the snapshot script prune to the last 3 files, which already deleted the tracked June snapshots from disk. Recommendation: gitignore `scripts/ownership-snapshots/`, untrack the existing files, commit the pruning change.
 - [ ] **Work down address needs-review queue.** 252 records flagged `needs_review`, flat since at least 2026-10-15. Consider a review-queue view in the app so they can be cleared in one pass.
 - [ ] **Confirm the log-based alert policy exists** for `[ownership][ALERT]` (DOCUMENTATION.md section 7). The Sep 13 alert does not appear to have reached anyone.
 
@@ -40,6 +39,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 
 | Date | Change |
 |---|---|
+| 2026-10-20 | Ownership snapshots are now rolling local files: script keeps the last 3, folder gitignored |
 | 2026-10-20 | Mobile pass 2: Referral Partners and Mailers tables become cards on phones, summary boxes three across |
 | 2026-10-20 | Mobile pass 1: client list on the first phone screen (compact stats and rates, collapsible filters), no zoom-on-tap, 44px touch targets, tighter header, form Save bar pinned to bottom |
 | 2026-10-20 | One-click mailing address suggestion from the borrower's current owner-occupied loan (skips homes no longer owned); review-list rows open the exact record |

@@ -6,3 +6,6 @@
 dbbackup*.json
 *backup*.json
 .DS_Store
+
+# Rolling local ownership snapshots (script keeps the last 3)
+scripts/ownership-snapshots/

@@ -241,6 +241,16 @@ function delta(a, b) {
   return s(a - b);
 }
 
+function pruneSnapshots(keep) {
+  if (!fs.existsSync(SNAP_DIR)) return [];
+  const files = fs.readdirSync(SNAP_DIR)
+    .filter(f => /^\d{4}-\d{2}-\d{2}\.json$/.test(f))
+    .sort();
+  const stale = files.slice(0, Math.max(0, files.length - keep));
+  stale.forEach(f => fs.unlinkSync(path.join(SNAP_DIR, f)));
+  return stale;
+}
+
 function main() {
   const fileArg = process.argv.includes('--file')
     ? process.argv[process.argv.indexOf('--file') + 1] : null;
@@ -254,6 +264,7 @@ function main() {
   fs.writeFileSync(outPath, JSON.stringify({ date: stamp, ...snap }, null, 2));
 
   const prior = priorSnapshot(stamp);
+  const pruned = pruneSnapshots(3);
   console.log(`\nOwnership snapshot — ${stamp}`);
   console.log(`  current borrowers: ${snap.currentRows}  (raw rows: ${snap.rawRecords})`);
   console.log(`  verified:    ${snap.ownership.verified}` +
@@ -267,7 +278,9 @@ function main() {
   console.log(`  address needs review: ${snap.addressNeedsReview}` +
     (prior ? `   (${delta(snap.addressNeedsReview, prior.data.addressNeedsReview)})` : ''));
   if (!prior) console.log(`  (no prior snapshot yet — deltas start tomorrow)`);
-  console.log(`\n  saved ${path.relative(process.cwd(), outPath)}\n`);
+  console.log(`\n  saved ${path.relative(process.cwd(), outPath)}`);
+  if (pruned.length) console.log(`  pruned ${pruned.length} old snapshot${pruned.length > 1 ? 's' : ''} (keeping last 3): ${pruned.join(', ')}`);
+  console.log('');
 }
 
 main();

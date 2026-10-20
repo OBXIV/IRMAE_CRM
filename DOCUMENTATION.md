@@ -32,7 +32,7 @@ functions/                     Cloud Functions (Node 20)
 
 scripts/
   ownership-snapshot.js        Daily dedup ownership counts + deltas
-  ownership-snapshots/         Dated JSON snapshots (YYYY-MM-DD.json)
+  ownership-snapshots/         Dated JSON snapshots (YYYY-MM-DD.json), last 3 kept, gitignored
   update_rates.py              FRED -> rates.json
 
 .github/workflows/update-rates.yml   Daily rate refresh Action
@@ -133,7 +133,7 @@ Returns the run summary JSON. A wrong/absent token returns 403.
 ```
 cd "<repo>" && node scripts/ownership-snapshot.js
 ```
-Pulls live RTDB, computes dashboard-deduplicated counts, writes `scripts/ownership-snapshots/YYYY-MM-DD.json`, and prints deltas vs the prior snapshot. Use `--file dump.json` to count a local `/clients` dump instead of hitting the live DB.
+Pulls live RTDB, computes dashboard-deduplicated counts, writes `scripts/ownership-snapshots/YYYY-MM-DD.json`, and prints deltas vs the prior snapshot. Only the 3 most recent snapshots are kept; they live on the operator machine and are not committed. Use `--file dump.json` to count a local `/clients` dump instead of hitting the live DB.
 
 This script also runs from a local scheduled task at 06:14 daily for a morning summary. It self-adds `/opt/homebrew/bin` and `/usr/local/bin` to PATH so non-login scheduled runs can find the firebase CLI, and surfaces a clear error on auth/CLI failure instead of failing silently.
 
