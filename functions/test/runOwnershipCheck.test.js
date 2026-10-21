@@ -251,3 +251,28 @@ test('a healthy run writes a heartbeat and raises no alert', async () => {
   const healthWrite = db.sets.find((s) => s.path === 'systemHealth/ownership');
   assert.strictEqual(healthWrite.value.alert, null);
 });
+
+test('a run that hits its time budget stops cleanly and still writes the heartbeat', async () => {
+  const db = createMockDb({
+    c1: { address: '1 Main St', city: 'Boise', borrower1first: 'John', borrower1last: 'Smith' },
+    c2: { address: '2 Main St', city: 'Boise', borrower1first: 'John', borrower1last: 'Smith' },
+    c3: { address: '3 Main St', city: 'Boise', borrower1first: 'John', borrower1last: 'Smith' },
+  });
+  let elapsed = 0;
+  const summary = await runOwnershipCheck(db, {
+    now: 1710000000000,
+    logger: { info() {}, warn() {}, error() {} },
+    delayMs: 0,
+    timeBudgetMs: 1000,
+    clock: () => elapsed,
+    getProviderForCounty: () => ({
+      lookupOwner: async () => { elapsed += 600; return { ownerName: 'SMITH JOHN' }; },
+    }),
+  });
+
+  assert.strictEqual(summary.looked_up, 2);
+  assert.strictEqual(summary.stopped_for_time, true);
+  assert.strictEqual(db.data.clients.c3.ownershipCheckedAt, undefined);
+  const healthWrite = db.sets.find((s) => s.path === 'systemHealth/ownership');
+  assert.ok(healthWrite, 'heartbeat written even when stopping early');
+});

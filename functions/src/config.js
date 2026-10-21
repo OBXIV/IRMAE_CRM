@@ -15,6 +15,12 @@ const RECHECK_AFTER_DAYS = 30;
 // Hard cap on lookups per run (backstop against runaway cost / blocks).
 const MAX_LOOKUPS_PER_RUN = 400;
 
+// Stop starting new lookups after this long so a large catch-up run still ends
+// cleanly (summary + systemHealth heartbeat) inside the 540s function timeout.
+// The 2 min margin covers one slow lookup plus the final writes. Records not
+// reached are picked up the next night.
+const RUN_TIME_BUDGET_MS = 420000;
+
 // Breakage alert: if a county portal returns an owner on ZERO of at least this
 // many routed lookups in a run, treat the provider as broken and alert. Set
 // high enough that a quiet night (few lookups) never false-alarms.
@@ -68,6 +74,7 @@ module.exports = {
   REQUEST_TIMEOUT_MS,
   RECHECK_AFTER_DAYS,
   MAX_LOOKUPS_PER_RUN,
+  RUN_TIME_BUDGET_MS,
   ALERT_MIN_SAMPLE,
   SUPPORTED_COUNTIES,
   USER_AGENT,

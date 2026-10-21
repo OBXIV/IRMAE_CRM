@@ -11,7 +11,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 ## Open
 
 ### P0
-- [ ] **Nightly ownership job not running since 2026-09-13.** No record has a check attempt after that date and `/systemHealth/ownership` still holds the Sep 13 entry, so no run has completed since. Check the Cloud Scheduler job for `nightlyOwnershipCheck` and Blaze plan billing in the GCP console, then trigger `runOwnershipCheckNow` and confirm the heartbeat timestamp updates. Scrapers are not the cause: Ada and Canyon both returned owners on 2026-10-20.
+- [ ] **Nightly ownership job not running since 2026-09-13.** Root cause (confirmed 2026-10-21): the project's billing account was a Google Cloud free trial that ran June 14 to September 13, 2026 and expired without being upgraded, so Cloud Functions and Cloud Scheduler stopped. Cloud Scheduler's job list now errors. Billing upgraded to paid on 2026-10-21; the Scheduler job is back and enabled (next run 3:15am). Remaining: deploy the run time budget (all 661 records are due, so a catch-up run would otherwise exceed the 9 min timeout), then force a run and confirm `/systemHealth/ownership` updates. Expected ongoing cost is near zero (one short nightly run sits inside the free tiers).
 - [ ] **Stale-heartbeat check.** Have `scripts/ownership-snapshot.js` read `/systemHealth/ownership.at` and flag it when older than 36h. Today alerts only fire on a failed run, so a job that never runs goes unnoticed (it did, for 5 weeks).
 
 ### P1

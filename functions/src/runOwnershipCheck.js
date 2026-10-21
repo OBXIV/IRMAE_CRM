@@ -9,6 +9,7 @@ const {
   REQUEST_DELAY_MS,
   RECHECK_AFTER_DAYS,
   MAX_LOOKUPS_PER_RUN,
+  RUN_TIME_BUDGET_MS,
   ALERT_MIN_SAMPLE,
   SUPPORTED_COUNTIES,
 } = require('./config');
@@ -44,7 +45,8 @@ function statusPatchIfMissing(client) {
   return client.ownershipStatus ? {} : { ownershipStatus: 'unverified' };
 }
 
-// Core run loop. `db` is an admin RTDB instance; `now` is injectable for tests.
+// Core run loop. `db` is an admin RTDB instance; `now` and `clock` are
+// injectable for tests (`now` stamps records, `clock` measures elapsed time).
 // Returns a summary object. Never throws on a single-client failure — a failed
 // lookup leaves that record's ownershipStatus untouched (the key invariant).
 async function runOwnershipCheck(
@@ -56,8 +58,11 @@ async function runOwnershipCheck(
     delayMs = REQUEST_DELAY_MS,
     alertWebhookUrl = process.env.OWNERSHIP_ALERT_WEBHOOK_URL || '',
     fetchImpl = null,
+    timeBudgetMs = RUN_TIME_BUDGET_MS,
+    clock = Date.now,
   } = {},
 ) {
+  const startedAt = clock();
   const snap = await db.ref('clients').once('value');
   const clients = snap.val() || {};
   const ids = Object.keys(clients);
@@ -81,12 +86,18 @@ async function runOwnershipCheck(
     address_enriched: 0,
     address_needs_review: 0,
     street_only_probed: 0,
+    stopped_for_time: false,
     by_status: { verified: 0, trust: 0, entity: 0, nlor: 0 },
   };
 
   for (const id of ids) {
     if (summary.looked_up >= MAX_LOOKUPS_PER_RUN) {
       logger.info(`[ownership] hit MAX_LOOKUPS_PER_RUN (${MAX_LOOKUPS_PER_RUN}); stopping early`);
+      break;
+    }
+    if (clock() - startedAt >= timeBudgetMs) {
+      summary.stopped_for_time = true;
+      logger.info(`[ownership] hit run time budget (${timeBudgetMs}ms); stopping early`);
       break;
     }
 
