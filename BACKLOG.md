@@ -1,6 +1,6 @@
 # IRMAE CRM Backlog
 
-Open work at the top, shipped work at the bottom. Update this file in the same commit as the change it describes.
+Open work only. When an item ships, remove it here and add a row to the change log in [HISTORY.md](HISTORY.md), in the same commit as the change.
 
 This repo is public. Keep client names, record IDs, and any client data out of this file and out of commit messages.
 
@@ -32,29 +32,3 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 - [ ] Firebase Hosting + Firestore + Vite migration (see FUTURE_MIGRATION_NOTES.md).
 - [ ] Counties beyond Ada and Canyon.
 - [ ] Access model beyond two hardcoded emails.
-
----
-
-## Done
-
-| Date | Change |
-|---|---|
-| 2026-10-21 | Spreadsheet import: accepts "Borrower First Name" / "Borrower Last Name" style headers, keeps every person from joint name cells ("A & B" + "Smith", or "A" + "Smith & B Jones"), and shows a specific error when the header row or name columns are missing |
-| 2026-10-21 | Cloud Functions moved to Node 22 (firebase-functions 7.4, firebase-admin 14.5) ahead of the Oct 30 Node 20 cutoff; forced run on the new runtime succeeded with a healthy heartbeat |
-| 2026-10-21 | Nightly ownership job restored. Cause: Google Cloud free trial expired 2026-09-13 with no paid upgrade, which stopped Functions and Scheduler. Billing upgraded; run now stops cleanly at a 7 minute budget; forced run succeeded with a healthy heartbeat |
-| 2026-10-20 | Ownership snapshots are now rolling local files: script keeps the last 3, folder gitignored |
-| 2026-10-20 | Mobile pass 2: Referral Partners and Mailers tables become cards on phones, summary boxes three across |
-| 2026-10-20 | Mobile pass 1: client list on the first phone screen (compact stats and rates, collapsible filters), no zoom-on-tap, 44px touch targets, tighter header, form Save bar pinned to bottom |
-| 2026-10-20 | One-click mailing address suggestion from the borrower's current owner-occupied loan (skips homes no longer owned); review-list rows open the exact record |
-| 2026-10-20 | Rebased onto origin and pushed the pending June work (snapshot tool, PATH fix, docs) with this release |
-| 2026-10-20 | Mailing address for second home / investment properties: form, drawer, import columns, mailers use it, flagged when missing |
-| 2026-10-20 | Status audit: found nightly job stalled since 09-13; verified Ada and Canyon scrapers working |
-| 2026-06-29 | Data fix in live DB: removed a referral partner's name wrongly embedded in a client name field (no code change) |
-| 2026-06-29 | Build spec (BUILD_SPEC.md) and operations guide (DOCUMENTATION.md) |
-| 2026-06-20 | Snapshot script finds the firebase CLI in scheduled runs and fails loudly instead of silently |
-| 2026-06-19 | Daily ownership snapshot tool with dashboard-matched dedup counts |
-| 2026-06-17 | Provider breakage detection and alerting in the nightly run |
-| 2026-06-17 | Address enrichment from county assessors |
-| 2026-06-17 | Ownership status filtering and mail merge page |
-| 2026-06-15 | Nightly ownership verification Cloud Functions |
-| 2026-06-10 | Ownership badges, current-loan dashboard view, multi-word search, referral alias cleanup, related-loan address matching |

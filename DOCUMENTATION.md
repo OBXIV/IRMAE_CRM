@@ -193,7 +193,8 @@ Edit `functions/src/config.js`: `REQUEST_DELAY_MS`, `REQUEST_TIMEOUT_MS`, `RECHE
 ## 11. Reference
 
 - Build spec: [BUILD_SPEC.md](BUILD_SPEC.md)
-- Backlog and change log: [BACKLOG.md](BACKLOG.md)
+- Backlog (open work): [BACKLOG.md](BACKLOG.md)
+- History and change log: [HISTORY.md](HISTORY.md)
 - Migration path: [FUTURE_MIGRATION_NOTES.md](FUTURE_MIGRATION_NOTES.md)
 - Functions readme: [functions/README.md](functions/README.md)
 - Top-level readme: [README.md](README.md)
