@@ -15,7 +15,7 @@ firebase-rules.json            RTDB security rules (source of truth, publish man
 firebase.json / .firebaserc    Firebase project + deploy config
 assets/                        Logo and static images
 
-functions/                     Cloud Functions (Node 20)
+functions/                     Cloud Functions (Node 22)
   index.js                     Entry: nightlyOwnershipCheck + runOwnershipCheckNow
   src/
     runOwnershipCheck.js       Core nightly loop
@@ -42,7 +42,7 @@ scripts/
 
 ## 2. Prerequisites
 
-- Node 20 and npm.
+- Node 22 or newer and npm.
 - Firebase CLI, logged in: `firebase login` (current account: `mechev14@gmail.com`).
 - Python 3.x for the rate script.
 - Access to the `iramecrm` Firebase project.
@@ -85,7 +85,7 @@ Push to the default branch. GitHub Pages publishes `index.html` and `rates.json`
 cd functions
 firebase deploy --only functions
 ```
-Functions are in `us-central1`, Node 20, 512MiB, 540s timeout.
+Functions are in `us-central1`, Node 22, 512MiB, 540s timeout.
 
 ### Database rules
 `firebase-rules.json` is documentation. To make rules live:

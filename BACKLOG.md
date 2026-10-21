@@ -14,7 +14,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 - [ ] **Stale-heartbeat check.** Have `scripts/ownership-snapshot.js` read `/systemHealth/ownership.at` and flag it when older than 36h. Today alerts only fire on a failed run, so a job that never runs goes unnoticed (it did, for 5 weeks).
 
 ### P1
-- [ ] **Upgrade Cloud Functions off Node.js 20 before 2026-10-30.** The deploy warned that Node 20 is decommissioned on Oct 30; after that, backend changes cannot be deployed until `functions/package.json` moves to Node 22 and `firebase-functions` is upgraded (the CLI warns of breaking changes). Run the function tests and a forced run after upgrading.
+- [ ] **Upgrade Cloud Functions off Node.js 20 before 2026-10-30.** Code is ready (Node 22, firebase-functions 7.4, firebase-admin 14.5 with modular imports; tests and deploy dry run pass). Remaining: deploy, force a run, confirm the heartbeat.
 - [ ] **Watch the ownership catch-up.** Every record came due during the outage. A 7 minute run covers about 68 county lookups, so rechecking everything takes roughly 4 to 5 more nights. Runs that hit the budget are expected and still record a healthy heartbeat.
 - [ ] **Work down address needs-review queue.** 252 records flagged `needs_review`, flat since at least 2026-10-15. Consider a review-queue view in the app so they can be cleared in one pass.
 - [ ] **Confirm the log-based alert policy exists** for `[ownership][ALERT]` (DOCUMENTATION.md section 7). The Sep 13 alert does not appear to have reached anyone.

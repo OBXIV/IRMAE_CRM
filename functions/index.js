@@ -1,13 +1,14 @@
 'use strict';
 
-const admin = require('firebase-admin');
+const { initializeApp } = require('firebase-admin/app');
+const { getDatabase } = require('firebase-admin/database');
 const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { onRequest } = require('firebase-functions/v2/https');
 const logger = require('firebase-functions/logger');
 
 const { runOwnershipCheck } = require('./src/runOwnershipCheck');
 
-admin.initializeApp({
+initializeApp({
   databaseURL: 'https://iramecrm-default-rtdb.firebaseio.com',
 });
 
@@ -31,7 +32,7 @@ const COMMON = {
 exports.nightlyOwnershipCheck = onSchedule(
   { schedule: '15 3 * * *', timeZone: 'America/Boise', ...COMMON },
   async () => {
-    await runOwnershipCheck(admin.database(), { logger });
+    await runOwnershipCheck(getDatabase(), { logger });
   },
 );
 
@@ -47,7 +48,7 @@ exports.runOwnershipCheckNow = onRequest(
       res.status(403).send('forbidden');
       return;
     }
-    const summary = await runOwnershipCheck(admin.database(), { logger });
+    const summary = await runOwnershipCheck(getDatabase(), { logger });
     res.status(200).json(summary);
   },
 );

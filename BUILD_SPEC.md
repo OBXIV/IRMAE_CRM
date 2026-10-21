@@ -46,7 +46,7 @@ GitHub Pages (static)
 Firebase project: iramecrm
   Authentication        Google provider only, 2 authorized emails
   Realtime Database     /clients/{clientId}, /systemHealth/ownership
-  Cloud Functions (Node 20, us-central1)
+  Cloud Functions (Node 22, us-central1)
      nightlyOwnershipCheck   scheduled 03:15 America/Boise
      runOwnershipCheckNow     manual HTTPS trigger, token-protected
         |
@@ -76,7 +76,7 @@ Design principles:
 | Hosting | GitHub Pages (`https://obxiv.github.io/IRMAE_CRM/`) |
 | Auth | Firebase Authentication, Google provider |
 | Database | Firebase Realtime Database (`iramecrm-default-rtdb`) |
-| Backend | Firebase Cloud Functions v2, Node 20, `us-central1` |
+| Backend | Firebase Cloud Functions v2 (firebase-functions 7, firebase-admin 14), Node 22, `us-central1` |
 | Scraping | `cheerio` HTML parsing, custom per-county providers |
 | Rate data | FRED API (Freddie Mac PMMS series), Python script |
 | CI | GitHub Actions (daily rate refresh) |

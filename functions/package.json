@@ -3,7 +3,7 @@
   "description": "IRMAE CRM Cloud Functions — nightly property ownership verification",
   "version": "1.0.0",
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "index.js",
   "scripts": {
@@ -15,8 +15,8 @@
   },
   "dependencies": {
     "cheerio": "^1.0.0",
-    "firebase-admin": "^12.6.0",
-    "firebase-functions": "^5.1.1"
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0"
   },
   "private": true
 }
