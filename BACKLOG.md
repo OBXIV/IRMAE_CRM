@@ -39,6 +39,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | Spreadsheet import: accepts "Borrower First Name" / "Borrower Last Name" style headers, keeps every person from joint name cells ("A & B" + "Smith", or "A" + "Smith & B Jones"), and shows a specific error when the header row or name columns are missing |
 | 2026-10-21 | Cloud Functions moved to Node 22 (firebase-functions 7.4, firebase-admin 14.5) ahead of the Oct 30 Node 20 cutoff; forced run on the new runtime succeeded with a healthy heartbeat |
 | 2026-10-21 | Nightly ownership job restored. Cause: Google Cloud free trial expired 2026-09-13 with no paid upgrade, which stopped Functions and Scheduler. Billing upgraded; run now stops cleanly at a 7 minute budget; forced run succeeded with a healthy heartbeat |
 | 2026-10-20 | Ownership snapshots are now rolling local files: script keeps the last 3, folder gitignored |

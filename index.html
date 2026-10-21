@@ -4528,16 +4528,16 @@
     ['Borrower 4', 'Borrower 4 Name']
   ];
   const BORROWER_FIRST_ALIASES = [
-    ['Borrower 1 First', 'Borrower First', 'Primary First', 'First Name', 'First'],
-    ['Borrower 2 First', 'Co-Borrower First', 'Co Borrower First', 'CoBorrower First'],
-    ['Borrower 3 First'],
-    ['Borrower 4 First']
+    ['Borrower 1 First', 'Borrower First', 'Primary First', 'First Name', 'First', 'Borrower First Name', 'Borrower 1 First Name', 'Primary First Name'],
+    ['Borrower 2 First', 'Co-Borrower First', 'Co Borrower First', 'CoBorrower First', 'Borrower 2 First Name', 'Co-Borrower First Name', 'Co Borrower First Name', 'CoBorrower First Name'],
+    ['Borrower 3 First', 'Borrower 3 First Name'],
+    ['Borrower 4 First', 'Borrower 4 First Name']
   ];
   const BORROWER_LAST_ALIASES = [
-    ['Borrower 1 Last', 'Borrower Last', 'Primary Last', 'Last Name', 'Last'],
-    ['Borrower 2 Last', 'Co-Borrower Last', 'Co Borrower Last', 'CoBorrower Last'],
-    ['Borrower 3 Last'],
-    ['Borrower 4 Last']
+    ['Borrower 1 Last', 'Borrower Last', 'Primary Last', 'Last Name', 'Last', 'Borrower Last Name', 'Borrower 1 Last Name', 'Primary Last Name'],
+    ['Borrower 2 Last', 'Co-Borrower Last', 'Co Borrower Last', 'CoBorrower Last', 'Borrower 2 Last Name', 'Co-Borrower Last Name', 'Co Borrower Last Name', 'CoBorrower Last Name'],
+    ['Borrower 3 Last', 'Borrower 3 Last Name'],
+    ['Borrower 4 Last', 'Borrower 4 Last Name']
   ];
 
   let knownImportHeaderKeyCache = null;
@@ -4731,6 +4731,12 @@
           last: lastParts[index] || lastText
         }));
       }
+      // "Rebecca" + "Darwin & Max Huebsch": the first person's last name, then
+      // full names for each additional borrower.
+      if (lastParts.length > 1 && !/\s/.test(firstText) && !/\s/.test(lastParts[0])
+          && lastParts.slice(1).every(part => /\s/.test(part))) {
+        return [{ first: firstText, last: lastParts[0] }, ...lastParts.slice(1).map(splitFullName)];
+      }
       return [{ first: firstText, last: lastText }];
     }
 
@@ -4753,10 +4759,20 @@
       if (full) borrowers.push(...borrowersFromCells(full, ''));
     });
 
+    // A joint cell ("Michael & Shayla" + "White") yields several people; the
+    // first fills this slot and the rest go to the next empty borrower slots.
+    const jointExtras = [];
     BORROWER_FIRST_ALIASES.forEach((aliases, index) => {
       const first = importValue(row, headerKeys, aliases);
       const last = importValue(row, headerKeys, BORROWER_LAST_ALIASES[index]);
-      if (first || last) borrowers[index] = borrowersFromCells(first, last)[0] || { first, last };
+      if (!first && !last) return;
+      const people = borrowersFromCells(first, last);
+      borrowers[index] = people[0] || { first, last };
+      jointExtras.push(...people.slice(1));
+    });
+    jointExtras.forEach(person => {
+      const slot = [0, 1, 2, 3].find(i => !borrowers[i]);
+      if (slot !== undefined) borrowers[slot] = person;
     });
 
     if (borrowers.length === 0) {
@@ -4823,19 +4839,39 @@
     return hasClientIdentity && hasMappedData;
   }
 
+  function importUserError(message) {
+    const err = new Error(message);
+    err.userFacing = true;
+    return err;
+  }
+
+  function hasBorrowerNameHeader(headerKeys) {
+    const nameKeys = new Set([...BORROWER_FULL_ALIASES, ...BORROWER_FIRST_ALIASES, ...BORROWER_LAST_ALIASES]
+      .flat()
+      .concat(BORROWER_GENERIC_HEADERS)
+      .map(normalizeImportHeader));
+    return headerKeys.some(key => nameKeys.has(key));
+  }
+
   function mapSpreadsheetRows(rows) {
     const headerIndex = findImportHeaderRow(rows);
-    if (headerIndex < 0) throw new Error('No recognizable header row found.');
+    if (headerIndex < 0) {
+      throw importUserError('Could not find a header row. The sheet needs column names such as Borrower 1 First, Borrower 1 Last, Address, Closing Date, Loan Amount, and Referral Partner.');
+    }
     const headerKeys = rows[headerIndex].map(normalizeImportHeader);
     const ignoredHeaders = ignoredImportHeaders(rows[headerIndex]);
     if (ignoredHeaders.length) {
       console.info('Ignoring unrecognized spreadsheet import columns:', ignoredHeaders.join(', '));
     }
-    return rows
+    const mapped = rows
       .slice(headerIndex + 1)
       .filter(row => !isBlankImportRow(row))
       .map(row => mapSpreadsheetRow(row, headerKeys))
       .filter(hasClientImportData);
+    if (!mapped.length && !hasBorrowerNameHeader(headerKeys)) {
+      throw importUserError('No borrower name column found. Name the columns "Borrower 1 First" and "Borrower 1 Last" (or "First Name" and "Last Name").');
+    }
+    return mapped;
   }
 
   function parseCsvRows(text) {
@@ -4997,7 +5033,7 @@
         }
         await saveImportedClients(imported);
       } catch (err) {
-        alert(importErrorMessage(extension));
+        alert(err && err.userFacing ? err.message : importErrorMessage(extension));
         console.error(err);
       }
     };
