@@ -11,10 +11,11 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 ## Open
 
 ### P0
-- [ ] **Nightly ownership job not running since 2026-09-13.** Root cause (confirmed 2026-10-21): the project's billing account was a Google Cloud free trial that ran June 14 to September 13, 2026 and expired without being upgraded, so Cloud Functions and Cloud Scheduler stopped. Cloud Scheduler's job list now errors. Billing upgraded to paid on 2026-10-21; the Scheduler job is back and enabled (next run 3:15am). Remaining: deploy the run time budget (all 661 records are due, so a catch-up run would otherwise exceed the 9 min timeout), then force a run and confirm `/systemHealth/ownership` updates. Expected ongoing cost is near zero (one short nightly run sits inside the free tiers).
 - [ ] **Stale-heartbeat check.** Have `scripts/ownership-snapshot.js` read `/systemHealth/ownership.at` and flag it when older than 36h. Today alerts only fire on a failed run, so a job that never runs goes unnoticed (it did, for 5 weeks).
 
 ### P1
+- [ ] **Upgrade Cloud Functions off Node.js 20 before 2026-10-30.** The deploy warned that Node 20 is decommissioned on Oct 30; after that, backend changes cannot be deployed until `functions/package.json` moves to Node 22 and `firebase-functions` is upgraded (the CLI warns of breaking changes). Run the function tests and a forced run after upgrading.
+- [ ] **Watch the ownership catch-up.** Every record came due during the outage. A 7 minute run covers about 68 county lookups, so rechecking everything takes roughly 4 to 5 more nights. Runs that hit the budget are expected and still record a healthy heartbeat.
 - [ ] **Work down address needs-review queue.** 252 records flagged `needs_review`, flat since at least 2026-10-15. Consider a review-queue view in the app so they can be cleared in one pass.
 - [ ] **Confirm the log-based alert policy exists** for `[ownership][ALERT]` (DOCUMENTATION.md section 7). The Sep 13 alert does not appear to have reached anyone.
 
@@ -39,6 +40,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | Nightly ownership job restored. Cause: Google Cloud free trial expired 2026-09-13 with no paid upgrade, which stopped Functions and Scheduler. Billing upgraded; run now stops cleanly at a 7 minute budget; forced run succeeded with a healthy heartbeat |
 | 2026-10-20 | Ownership snapshots are now rolling local files: script keeps the last 3, folder gitignored |
 | 2026-10-20 | Mobile pass 2: Referral Partners and Mailers tables become cards on phones, summary boxes three across |
 | 2026-10-20 | Mobile pass 1: client list on the first phone screen (compact stats and rates, collapsible filters), no zoom-on-tap, 44px touch targets, tighter header, form Save bar pinned to bottom |
