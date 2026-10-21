@@ -71,6 +71,7 @@ On **September 13** the Google Cloud free trial behind the project expired witho
 - **Nightly job restored (Oct 21):** billing upgraded to a paid account; each run now stops cleanly at 7 minutes so a large catch-up never times out.
 - **Node 22 (Oct 21):** Cloud Functions moved off Node 20 ahead of its October 30 retirement.
 - **Import fixes and 2026 loans (Oct 21):** import accepts more column names, keeps every person from joint name cells, and gives clearer errors. 43 loans closing in 2026 were imported.
+- **Refi Watch worklist (Oct 21):** the Refi Watch flag became an actionable list. Each flagged loan can be marked contacted (which auto-schedules a follow-up in 90 days), snoozed, or dismissed, and the dashboard count now reflects what still needs working rather than the raw flag total.
 
 ---
 
@@ -93,6 +94,7 @@ Newest first. Commit hashes are in git; this table is the readable version.
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | Refi Watch became a worklist: per-loan Contacted / Snooze (30 or 90 day) / Dismiss / Reset state, the dashboard card shows the active count that drops as the list is worked, a scope bar switches between to-work / snoozed / dismissed / all-flagged, and each flagged record shows its rate-vs-market delta. A failed write never changes the saved state |
 | 2026-10-21 | Spreadsheet import accepts "Borrower First Name" / "Borrower Last Name" style headers, keeps every person from joint name cells ("A & B" + "Smith", or "A" + "Smith & B Jones"), and shows a specific error when the header row or name columns are missing. 43 loans closing in 2026 imported |
 | 2026-10-21 | Cloud Functions moved to Node 22 (firebase-functions 7.4, firebase-admin 14.5) ahead of the Oct 30 Node 20 cutoff; forced run on the new runtime succeeded |
 | 2026-10-21 | Nightly ownership job restored. Cause: Google Cloud free trial expired 2026-09-13 with no paid upgrade. Billing upgraded; run stops cleanly at a 7 minute budget; forced run succeeded |

@@ -629,6 +629,30 @@
     .market-card .rate-label { margin-top: 7px; color: var(--muted); font-size: 0.76rem; font-weight: 750; text-transform: uppercase; letter-spacing: 0.7px; }
     .market-card .rate-note { margin-top: 5px; color: var(--faint); font-size: 0.78rem; }
     .refi-badge { background: rgba(245, 158, 11, 0.17); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.36); margin-left: 5px; }
+    .refi-badge.refi-contacted { background: rgba(56, 189, 248, 0.14); color: #7dd3fc; border-color: rgba(56, 189, 248, 0.34); }
+    .refi-badge.refi-snoozed   { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.34); }
+    .refi-badge.refi-dismissed { background: rgba(100, 116, 139, 0.14); color: #94a3b8; border-color: rgba(100, 116, 139, 0.30); }
+    .refi-worklist-bar {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      padding: 12px 14px; margin-bottom: 14px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      border-radius: 8px;
+    }
+    .refi-worklist-bar .rwl-title { font-weight: 750; color: var(--text); font-size: 0.82rem; margin-right: 4px; }
+    .refi-worklist-chip {
+      border: 1px solid var(--line); background: rgba(18, 28, 46, 0.6); color: var(--muted);
+      border-radius: 999px; padding: 6px 13px; font-size: 0.78rem; font-weight: 650; cursor: pointer;
+    }
+    .refi-worklist-chip:hover { border-color: rgba(245, 158, 11, 0.4); }
+    .refi-worklist-chip.active { background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); color: #fde68a; }
+    .refi-worklist-note { flex-basis: 100%; color: var(--faint); font-size: 0.76rem; }
+    .refi-worklist-panel { display: flex; flex-wrap: wrap; gap: 8px; }
+    .refi-worklist-panel .btn { flex: 1 1 auto; }
+    .refi-worklist-status {
+      flex-basis: 100%; color: var(--muted); font-size: 0.84rem; line-height: 1.5; margin-bottom: 6px;
+    }
+    .refi-worklist-status strong { color: var(--text); font-weight: 650; }
 
     .filter-panel {
       display: flex;
@@ -1467,6 +1491,7 @@
   </div>
 
   <div class="table-wrap">
+    <div class="refi-worklist-bar" id="refiWorklistBar" hidden></div>
     <div class="mobile-client-list" id="mobileClientList"></div>
     <table>
       <thead>
@@ -2015,6 +2040,15 @@
   let authPersistenceReady = Promise.resolve();
   const REFI_SPREAD_THRESHOLD = 0.75;
   const AIO_REFI_WATCH_YEARS = 3;
+  const REFI_FOLLOWUP_DAYS = 90;
+  let refiWorklistScope = 'active';
+  const REFI_STATE_META = {
+    'new':       { label: 'New',       badge: 'Refi Watch' },
+    'followup':  { label: 'Follow up due', badge: 'Refi · Follow up' },
+    'contacted': { label: 'Contacted', badge: 'Refi · Contacted' },
+    'snoozed':   { label: 'Snoozed',   badge: 'Refi · Snoozed' },
+    'dismissed': { label: 'Dismissed', badge: 'Refi · Dismissed' }
+  };
 
   function isLocalReferralPreview() {
     const localHosts = ['localhost', '127.0.0.1', '::1'];
@@ -2709,7 +2743,7 @@
       if (activeYearFilter !== 'all' && closingYear(c) !== activeYearFilter) return false;
       if (options.includeOwnership !== false && !matchesOwnershipFilter(c)) return false;
       if (!matchesSearch(c, q)) return false;
-      if (includeRefi && showRefiOnly && !shouldFlagRefi(c)) return false;
+      if (includeRefi && showRefiOnly && !matchesRefiScope(c)) return false;
       return true;
     });
   }
@@ -2790,9 +2824,14 @@
   }
 
   function refiWatchBadge(c) {
-    return shouldFlagRefi(c)
-      ? `<span class="badge refi-badge" title="${esc(refiWatchReason(c))}">Refi Watch</span>`
-      : '';
+    if (!shouldFlagRefi(c) && !hasRefiWorklistData(c)) return '';
+    const state = refiWorklistState(c);
+    const meta = REFI_STATE_META[state] || REFI_STATE_META['new'];
+    const detail = [];
+    if (c.refiContactedAt) detail.push(`contacted ${fmtTimestamp(c.refiContactedAt)}`);
+    if (refiSnoozeActive(c)) detail.push(`snoozed to ${fmtTimestamp(c.refiSnoozeUntil)}`);
+    const title = [refiWatchReason(c), detail.join(', ')].filter(Boolean).join(' · ');
+    return `<span class="badge refi-badge refi-${state}" title="${esc(title)}">${meta.badge}</span>`;
   }
 
   function refiWatchNoteText(filtered = false) {
@@ -2801,6 +2840,160 @@
       : `loans at least ${REFI_SPREAD_THRESHOLD.toFixed(2)}% above current 30-yr rate`;
     const aioText = `AIO loans ${AIO_REFI_WATCH_YEARS}+ years from closing`;
     return `${filtered ? 'Filtered to ' : ''}${rateText} or ${aioText}.`;
+  }
+
+  // ── Refi Watch worklist ──────────────────────────────────
+  function hasRefiWorklistData(c) {
+    return !!(c.refiContactedAt || c.refiSnoozeUntil || c.refiDismissed);
+  }
+
+  function refiSnoozeActive(c) {
+    return Number(c.refiSnoozeUntil || 0) > Date.now();
+  }
+
+  // dismissed | contacted (snoozed after contact) | snoozed | followup (due) | new
+  function refiWorklistState(c) {
+    if (c.refiDismissed) return 'dismissed';
+    const snoozed = refiSnoozeActive(c);
+    if (c.refiContactedAt) return snoozed ? 'contacted' : 'followup';
+    return snoozed ? 'snoozed' : 'new';
+  }
+
+  // Needs action now: flagged, not dismissed, not currently snoozed.
+  function isActiveRefiCandidate(c) {
+    return shouldFlagRefi(c) && !c.refiDismissed && !refiSnoozeActive(c);
+  }
+
+  function matchesRefiScope(c) {
+    if (!shouldFlagRefi(c) && !hasRefiWorklistData(c)) return false;
+    switch (refiWorklistScope) {
+      case 'snoozed':   return shouldFlagRefi(c) && !c.refiDismissed && refiSnoozeActive(c);
+      case 'dismissed': return !!c.refiDismissed;
+      case 'all':       return shouldFlagRefi(c) || hasRefiWorklistData(c);
+      case 'active':
+      default:          return isActiveRefiCandidate(c);
+    }
+  }
+
+  function refiCounts(base) {
+    return {
+      active:    base.filter(isActiveRefiCandidate).length,
+      snoozed:   base.filter(c => shouldFlagRefi(c) && !c.refiDismissed && refiSnoozeActive(c)).length,
+      dismissed: base.filter(c => c.refiDismissed && (shouldFlagRefi(c) || hasRefiWorklistData(c))).length,
+      all:       base.filter(c => shouldFlagRefi(c) || hasRefiWorklistData(c)).length
+    };
+  }
+
+  function fmtTimestamp(ms) {
+    const n = Number(ms);
+    if (!n) return '—';
+    const d = new Date(n);
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  async function updateRefiFields(id, updates, bannerMsg) {
+    if (!db || !currentUser) { alert('Please sign in first.'); return; }
+    const c = clients.find(x => x.id === id);
+    if (!c) return;
+    updates.updatedAt = Date.now();
+    try {
+      await db.ref(CLIENTS_PATH + '/' + id).update(updates);
+      Object.assign(c, updates);
+      invalidateClientViewCache();
+      renderTable();
+      if (selectedClientId === id) renderClientDrawer();
+      showBanner(bannerMsg);
+      setTimeout(hideBanner, 1800);
+    } catch (err) {
+      alert('Could not update the Refi Watch status. Please try again.');
+      console.error(err);
+    }
+  }
+
+  function markRefiContacted(id) {
+    const now = Date.now();
+    return updateRefiFields(id, {
+      refiContactedAt: now,
+      refiSnoozeUntil: now + REFI_FOLLOWUP_DAYS * 86400000,
+      refiDismissed: null
+    }, `Marked contacted. Follows up in ${REFI_FOLLOWUP_DAYS} days.`);
+  }
+
+  function snoozeRefi(id, days) {
+    return updateRefiFields(id, {
+      refiSnoozeUntil: Date.now() + days * 86400000,
+      refiDismissed: null
+    }, `Snoozed ${days} days.`);
+  }
+
+  function dismissRefi(id) {
+    return updateRefiFields(id, { refiDismissed: true }, 'Dismissed from the Refi Watch list.');
+  }
+
+  function resetRefi(id) {
+    return updateRefiFields(id, {
+      refiContactedAt: null,
+      refiSnoozeUntil: null,
+      refiDismissed: null
+    }, 'Refi Watch status reset.');
+  }
+
+  function setRefiWorklistScope(scope) {
+    refiWorklistScope = scope;
+    currentPage = 1;
+    renderTable();
+  }
+
+  function renderRefiWorklistBar() {
+    const bar = document.getElementById('refiWorklistBar');
+    if (!bar) return;
+    if (!showRefiOnly) { bar.hidden = true; bar.innerHTML = ''; return; }
+    bar.hidden = false;
+    const counts = refiCounts(getFilteredClients({ includeRefi: false }));
+    const scopes = [
+      { key: 'active',    label: 'To work',     n: counts.active },
+      { key: 'snoozed',   label: 'Snoozed',     n: counts.snoozed },
+      { key: 'dismissed', label: 'Dismissed',   n: counts.dismissed },
+      { key: 'all',       label: 'All flagged', n: counts.all }
+    ];
+    bar.innerHTML = `
+      <span class="rwl-title">Refi Watch worklist</span>
+      ${scopes.map(s => `
+        <button type="button" class="refi-worklist-chip ${refiWorklistScope === s.key ? 'active' : ''}"
+          onclick="setRefiWorklistScope('${s.key}')">${s.label} · ${s.n}</button>`).join('')}
+      <span class="refi-worklist-note">${refiWatchNoteText(false)}</span>`;
+  }
+
+  function refiWorklistSection(c) {
+    if (!shouldFlagRefi(c) && !hasRefiWorklistData(c)) return '';
+    const state = refiWorklistState(c);
+    const meta = REFI_STATE_META[state] || REFI_STATE_META['new'];
+    const lines = [`Status: <strong>${meta.label}</strong>`];
+    if (isRateRefiWatch(c) && marketRates?.thirtyYear?.rate) {
+      const delta = (parseFloat(c.rate) - marketRates.thirtyYear.rate).toFixed(3);
+      lines.push(`Rate ${fmtRate(c.rate)} vs market ${marketRates.thirtyYear.rate.toFixed(3)}% (<strong>+${delta}%</strong>)`);
+    }
+    if (isAioRefiWatch(c)) lines.push(`AIO loan ${AIO_REFI_WATCH_YEARS}+ years past closing`);
+    if (c.refiContactedAt) lines.push(`Last contacted ${esc(fmtTimestamp(c.refiContactedAt))}`);
+    if (refiSnoozeActive(c)) lines.push(`Snoozed until ${esc(fmtTimestamp(c.refiSnoozeUntil))}`);
+    if (c.refiDismissed) lines.push('Dismissed from the worklist');
+    const id = esc(c.id);
+    const buttons = [
+      `<button class="btn btn-success" onclick="markRefiContacted('${id}')">Mark contacted</button>`,
+      `<button class="btn btn-edit" onclick="snoozeRefi('${id}',30)">Snooze 30d</button>`,
+      `<button class="btn btn-edit" onclick="snoozeRefi('${id}',90)">Snooze 90d</button>`
+    ];
+    if (!c.refiDismissed) buttons.push(`<button class="btn btn-cancel" onclick="dismissRefi('${id}')">Dismiss</button>`);
+    if (hasRefiWorklistData(c)) buttons.push(`<button class="btn btn-cancel" onclick="resetRefi('${id}')">Reset</button>`);
+    return `
+      <div class="detail-section">
+        <h3>Refi Watch</h3>
+        <div class="refi-worklist-panel">
+          <div class="refi-worklist-status">${lines.join(' · ')}</div>
+          ${buttons.join('')}
+        </div>
+      </div>`;
   }
 
   async function loadMortgageRates() {
@@ -3453,6 +3646,7 @@
 
   function toggleRefiFilter() {
     showRefiOnly = !showRefiOnly;
+    if (showRefiOnly) refiWorklistScope = 'active';
     currentPage = 1;
     renderTable();
   }
@@ -3947,6 +4141,7 @@
       </div>
       <div class="drawer-body">
         ${loanHistorySection(c)}
+        ${refiWorklistSection(c)}
         <div class="detail-section">
           <h3>Borrowers</h3>
           <div class="detail-grid">
@@ -4213,6 +4408,7 @@
     renderYearFilters();
     renderOwnershipFilters();
     const filtered = getFilteredClients();
+    renderRefiWorklistBar();
     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
     if (currentPage > totalPages) currentPage = totalPages;
     if (currentPage < 1) currentPage = 1;
@@ -4320,10 +4516,11 @@
     renderReferralPreview(referralRows);
     if (!document.getElementById('referralPartnersView').hidden) renderReferralPartnersPage(referralRows);
 
-    const refiWatch = getFilteredClients({ includeRefi: false }).filter(shouldFlagRefi).length;
-    document.getElementById('refiWatchCount').textContent = refiWatch;
+    const refi = refiCounts(getFilteredClients({ includeRefi: false }));
+    document.getElementById('refiWatchCount').textContent = refi.active;
     document.getElementById('refiWatchCard').classList.toggle('active', showRefiOnly);
-    document.getElementById('refiWatchNote').textContent = refiWatchNoteText(showRefiOnly);
+    document.getElementById('refiWatchNote').textContent =
+      `${refi.active} to work · ${refi.snoozed} snoozed · ${refi.dismissed} dismissed`;
   }
 
   // ── Modal ────────────────────────────────────────────────
