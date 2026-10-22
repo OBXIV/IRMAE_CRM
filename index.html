@@ -653,6 +653,21 @@
       flex-basis: 100%; color: var(--muted); font-size: 0.84rem; line-height: 1.5; margin-bottom: 6px;
     }
     .refi-worklist-status strong { color: var(--text); font-weight: 650; }
+    .note-compose { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+    .note-input {
+      width: 100%; resize: vertical; min-height: 44px;
+      background: rgba(9, 16, 30, 0.6); border: 1px solid var(--line); border-radius: 8px;
+      padding: 9px 11px; color: var(--text); font: inherit; font-size: 0.86rem;
+    }
+    .note-input:focus { outline: none; border-color: var(--accent); }
+    .note-compose .btn { align-self: flex-end; }
+    .note-list { display: flex; flex-direction: column; gap: 8px; }
+    .note-item { background: rgba(18, 28, 46, 0.6); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; }
+    .note-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--faint); font-size: 0.74rem; margin-bottom: 4px; }
+    .note-text { color: var(--text); font-size: 0.88rem; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+    .note-del { background: none; border: none; color: var(--muted); font-size: 1.05rem; line-height: 1; cursor: pointer; padding: 0 2px; }
+    .note-del:hover { color: #f87171; }
+    .note-empty { color: var(--faint); font-size: 0.84rem; }
 
     .filter-panel {
       display: flex;
@@ -4165,6 +4180,94 @@
     downloadBlob('﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8', `irmae_${kind}_${MONTHS_SHORT[birthdayMonth].toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`);
   }
 
+  // ── Client notes / contact log ───────────────────────────
+  function fmtDateTime(ms) {
+    const n = Number(ms);
+    if (!n) return '';
+    const d = new Date(n);
+    const date = `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${date} ${h}:${m} ${ap}`;
+  }
+
+  function clientNotesSorted(c) {
+    const notes = c && c.notes;
+    if (!notes || typeof notes !== 'object') return [];
+    return Object.entries(notes)
+      .map(([key, n]) => ({ key, at: Number(n && n.at) || 0, by: (n && n.by) || '', text: (n && n.text) || '' }))
+      .sort((a, b) => b.at - a.at);
+  }
+
+  function clientNotesSection(c) {
+    const id = esc(c.id);
+    const notes = clientNotesSorted(c);
+    const list = notes.length
+      ? notes.map(n => `
+          <div class="note-item">
+            <div class="note-meta">
+              <span>${esc(fmtDateTime(n.at))}${n.by ? ' · ' + esc(n.by) : ''}</span>
+              <button class="note-del" title="Delete note" onclick="deleteClientNote('${id}','${esc(n.key)}')">&times;</button>
+            </div>
+            <div class="note-text">${esc(n.text)}</div>
+          </div>`).join('')
+      : '<div class="note-empty">No notes yet.</div>';
+    return `
+      <div class="detail-section">
+        <h3>Notes</h3>
+        <div class="note-compose">
+          <textarea id="drawer-new-note" class="note-input" rows="2" placeholder="Add a note (call, email, follow-up)…"></textarea>
+          <button class="btn btn-success" onclick="addClientNote('${id}')">Add note</button>
+        </div>
+        <div class="note-list">${list}</div>
+      </div>`;
+  }
+
+  async function addClientNote(id) {
+    if (!db || !currentUser) { alert('Please sign in first.'); return; }
+    const ta = document.getElementById('drawer-new-note');
+    const text = (ta && ta.value || '').trim();
+    if (!text) return;
+    const c = clients.find(x => x.id === id);
+    if (!c) return;
+    const note = { at: Date.now(), by: currentUser.email || '', text };
+    try {
+      const ref = db.ref(CLIENTS_PATH + '/' + id + '/notes').push();
+      await ref.set(note);
+      await db.ref(CLIENTS_PATH + '/' + id + '/updatedAt').set(note.at);
+      c.notes = c.notes || {};
+      c.notes[ref.key] = note;
+      if (ta) ta.value = '';
+      invalidateClientViewCache();
+      if (selectedClientId === id) renderClientDrawer();
+      renderTable();
+      showBanner('Note added.');
+      setTimeout(hideBanner, 1500);
+    } catch (err) {
+      alert('Could not save the note. Please try again.');
+      console.error(err);
+    }
+  }
+
+  async function deleteClientNote(id, key) {
+    if (!db || !currentUser) { alert('Please sign in first.'); return; }
+    if (!confirm('Delete this note?')) return;
+    const c = clients.find(x => x.id === id);
+    try {
+      await db.ref(CLIENTS_PATH + '/' + id + '/notes/' + key).remove();
+      if (c && c.notes) delete c.notes[key];
+      invalidateClientViewCache();
+      if (selectedClientId === id) renderClientDrawer();
+      showBanner('Note deleted.');
+      setTimeout(hideBanner, 1500);
+    } catch (err) {
+      alert('Could not delete the note. Please try again.');
+      console.error(err);
+    }
+  }
+
   function renderReferralPartnersPage(rows = getReferralPartnerStats(getFilteredClients())) {
     const totalLoans = rows.reduce((sum, row) => sum + row.count, 0);
     const totalVolume = rows.reduce((sum, row) => sum + row.volume, 0);
@@ -4375,6 +4478,7 @@
       <div class="drawer-body">
         ${loanHistorySection(c)}
         ${refiWorklistSection(c)}
+        ${clientNotesSection(c)}
         <div class="detail-section">
           <h3>Borrowers</h3>
           <div class="detail-grid">

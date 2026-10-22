@@ -22,8 +22,6 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 
 - [ ] **Check mobile on a real iPhone.** Emulator testing done; confirm Safari specifics (notch, collapsing toolbar, form Save bar) on her phone.
 
-- [ ] **Per-client notes / dated contact log.** No place to record a call or a note today. Add a dated notes box on the client drawer so manual outreach and status work have a home. Pairs with the Refi Watch worklist (a "contacted" entry could capture what was said).
-
 ### P2
 - [ ] Normalize non-standard property type values: `Inv` (2 records, treated as investment), plus one `P` and one `R` that look like loan type entered in the wrong field.
 - [ ] Optional instant alerts: set `OWNERSHIP_ALERT_WEBHOOK_URL` and add it to the function's secrets.

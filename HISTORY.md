@@ -74,6 +74,7 @@ On **September 13** the Google Cloud free trial behind the project expired witho
 - **Refi Watch worklist (Oct 21):** the Refi Watch flag became an actionable list. Each flagged loan can be marked contacted (which auto-schedules a follow-up in 90 days), snoozed, or dismissed, and the dashboard count now reflects what still needs working rather than the raw flag total.
 - **Birthday outreach (Oct 21):** a month-by-month list of client birthdays for relationship calls, with the age they turn and contact info, reusing the mailers table and CSV export. Loan anniversaries can join the same view later.
 - **Loan-anniversary outreach (Oct 22):** the Birthday Outreach page became a unified Outreach page with a Birthdays / Loan Anniversaries toggle. Anniversary mode surfaces clients whose closing anniversary lands in the selected month, with years since closing, reusing the same table and CSV export.
+- **Per-client notes (Oct 22):** a dated contact log on the client drawer. Notes stamp date, time, and author, can be deleted, and are stored with push keys so two users adding at once do not overwrite each other.
 
 ---
 
@@ -96,6 +97,7 @@ Newest first. Commit hashes are in git; this table is the readable version.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | Per-client notes: a dated contact log on the client drawer. Each note stamps date, time, and author and can be deleted; stored under the client with Firebase push keys so concurrent edits do not clobber, and note text is escaped on display |
 | 2026-10-22 | Outreach gained a loan-anniversary mode: the Birthday Outreach page became a unified Outreach page with a Birthdays / Loan Anniversaries toggle. Anniversary mode lists clients whose loan closing anniversary falls in the selected month, with years since closing and contact info, skipping no-longer-owner and deceased-only households |
 | 2026-10-21 | Birthday Outreach page: clients with birthdays in a selected month (defaults to the current month), showing the age they turn, phone and email, and property with ownership. Dedupes repeat clients, skips deceased borrowers, covers both borrowers, and exports CSV. Reached from the menu and a Birthdays button next to Mailers |
 | 2026-10-21 | Refi Watch became a worklist: per-loan Contacted / Snooze (30 or 90 day) / Dismiss / Reset state, the dashboard card shows the active count that drops as the list is worked, a scope bar switches between to-work / snoozed / dismissed / all-flagged, and each flagged record shows its rate-vs-market delta. A failed write never changes the saved state |
