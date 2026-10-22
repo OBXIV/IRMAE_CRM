@@ -15,7 +15,7 @@ Keeping it current: every shipped change gets a row in the change log, in the sa
 | 2. An everyday CRM | June 4 to 10 | Dashboard, referral partners, spreadsheet import, history loaded, loan history, phone cards |
 | 3. Ownership verification and mailers | June 15 to 29 | Nightly county ownership checks, address auto-fill, mailers, monitoring, docs |
 | Quiet period and an outage | July to October 19 | No changes; the nightly job stopped on Sep 13 and went unnoticed |
-| 4. Mailing addresses, mobile, reliability | October 20 to 21 | Mailing addresses, phone layout, nightly job restored, Node 22, import fixes, 2026 loans loaded |
+| 4. Mailing addresses, mobile, reliability | October 20 to 22 | Mailing addresses, phone layout, nightly job restored, Node 22, import fixes, 2026 loans loaded, outreach lists (refi, birthday, anniversary) |
 
 ---
 
@@ -62,7 +62,7 @@ No code changes; daily rate updates kept running.
 
 On **September 13** the Google Cloud free trial behind the project expired without being converted to a paid account. Cloud Functions and the scheduler stopped. The app itself kept working, because sign-in and the database run on Firebase's free tier, so nothing looked wrong. The alerting only covered a run that failed, not a run that never happened, so the stop went unnoticed for five weeks.
 
-## Phase 4: Mailing addresses, mobile, and reliability (October 20 to 21)
+## Phase 4: Mailing addresses, mobile, and reliability (October 20 to 22)
 
 - **Audit (Oct 20):** found the stalled nightly job; started the backlog.
 - **Mailing addresses (Oct 20):** requested by the app's primary user. Second home and investment properties get a mailing address, which the mailers use instead of the property address. Missing ones are flagged, import columns are recognized, and a one-click suggestion offers the borrower's current home address.
@@ -73,6 +73,7 @@ On **September 13** the Google Cloud free trial behind the project expired witho
 - **Import fixes and 2026 loans (Oct 21):** import accepts more column names, keeps every person from joint name cells, and gives clearer errors. 43 loans closing in 2026 were imported.
 - **Refi Watch worklist (Oct 21):** the Refi Watch flag became an actionable list. Each flagged loan can be marked contacted (which auto-schedules a follow-up in 90 days), snoozed, or dismissed, and the dashboard count now reflects what still needs working rather than the raw flag total.
 - **Birthday outreach (Oct 21):** a month-by-month list of client birthdays for relationship calls, with the age they turn and contact info, reusing the mailers table and CSV export. Loan anniversaries can join the same view later.
+- **Loan-anniversary outreach (Oct 22):** the Birthday Outreach page became a unified Outreach page with a Birthdays / Loan Anniversaries toggle. Anniversary mode surfaces clients whose closing anniversary lands in the selected month, with years since closing, reusing the same table and CSV export.
 
 ---
 
@@ -95,6 +96,7 @@ Newest first. Commit hashes are in git; this table is the readable version.
 
 | Date | Change |
 |---|---|
+| 2026-10-22 | Outreach gained a loan-anniversary mode: the Birthday Outreach page became a unified Outreach page with a Birthdays / Loan Anniversaries toggle. Anniversary mode lists clients whose loan closing anniversary falls in the selected month, with years since closing and contact info, skipping no-longer-owner and deceased-only households |
 | 2026-10-21 | Birthday Outreach page: clients with birthdays in a selected month (defaults to the current month), showing the age they turn, phone and email, and property with ownership. Dedupes repeat clients, skips deceased borrowers, covers both borrowers, and exports CSV. Reached from the menu and a Birthdays button next to Mailers |
 | 2026-10-21 | Refi Watch became a worklist: per-loan Contacted / Snooze (30 or 90 day) / Dismiss / Reset state, the dashboard card shows the active count that drops as the list is worked, a scope bar switches between to-work / snoozed / dismissed / all-flagged, and each flagged record shows its rate-vs-market delta. A failed write never changes the saved state |
 | 2026-10-21 | Spreadsheet import accepts "Borrower First Name" / "Borrower Last Name" style headers, keeps every person from joint name cells ("A & B" + "Smith", or "A" + "Smith & B Jones"), and shows a specific error when the header row or name columns are missing. 43 loans closing in 2026 imported |

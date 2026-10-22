@@ -1423,6 +1423,7 @@
       <div class="action-menu" id="actionMenu">
         <button class="menu-item" onclick="openMailMergePage()">Mailers / Mail Merge</button>
         <button class="menu-item" onclick="openBirthdayPage()">Birthday Outreach</button>
+        <button class="menu-item" onclick="openAnniversaryPage()">Loan Anniversaries</button>
         <button class="menu-item" onclick="importClientsFromMenu()">Import Clients</button>
         <button class="menu-item" onclick="exportClientsFromMenu()">Export Clients</button>
         <button class="menu-item danger" onclick="signOutFromMenu()">Sign Out</button>
@@ -1488,6 +1489,7 @@
     <div class="filter-group filter-group-action">
       <button class="btn btn-export" onclick="openMailMergePage()" title="Build a mailing list and export labels / CSV">✉ Mailers</button>
       <button class="btn btn-export" onclick="openBirthdayPage()" title="Clients with birthdays this month, for outreach calls">🎂 Birthdays</button>
+      <button class="btn btn-export" onclick="openAnniversaryPage()" title="Clients whose loan closing anniversary falls this month">🏠 Anniversaries</button>
     </div>
     <div class="scope-label" id="scopeLabel">Showing: All Years</div>
   </div>
@@ -1640,12 +1642,19 @@
     <div class="page-head">
       <div>
         <div class="page-kicker">Outreach</div>
-        <h2>Birthday Outreach</h2>
+        <h2>Outreach</h2>
       </div>
       <button class="btn btn-cancel" onclick="closeBirthdayPage()">Back to Dashboard</button>
     </div>
 
     <div class="mailmerge-controls">
+      <div class="filter-group">
+        <div class="filter-label">Type</div>
+        <div class="year-filter-buttons" id="outreachModeButtons">
+          <button class="year-filter-btn" data-mode="birthday" onclick="setOutreachMode('birthday')">🎂 Birthdays</button>
+          <button class="year-filter-btn" data-mode="anniversary" onclick="setOutreachMode('anniversary')">🏠 Loan Anniversaries</button>
+        </div>
+      </div>
       <div class="filter-group">
         <div class="filter-label">Month</div>
         <div class="year-filter-buttons" id="birthdayMonthButtons"></div>
@@ -1655,7 +1664,7 @@
     <div class="mailmerge-summary-grid">
       <div class="partner-summary">
         <div class="num" id="birthday-summary-count">0</div>
-        <div class="lbl">Birthdays in <span id="birthday-summary-month">—</span></div>
+        <div class="lbl"><span id="outreach-summary-label">Birthdays in</span> <span id="birthday-summary-month">—</span></div>
       </div>
       <div class="mailmerge-actions">
         <button class="btn btn-export" onclick="exportBirthdayCsv()">⬇ Export CSV</button>
@@ -1667,8 +1676,8 @@
         <thead>
           <tr>
             <th>Client</th>
-            <th>Birthday</th>
-            <th>Age</th>
+            <th id="outreachColDate">Birthday</th>
+            <th id="outreachColMetric">Age</th>
             <th>Contact</th>
             <th>Property / Ownership</th>
           </tr>
@@ -2093,6 +2102,7 @@
   const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   let birthdayMonth = new Date().getMonth();
+  let outreachMode = 'birthday';
   const REFI_STATE_META = {
     'new':       { label: 'New',       badge: 'Refi Watch' },
     'followup':  { label: 'Follow up due', badge: 'Refi · Follow up' },
@@ -4002,15 +4012,18 @@
         if (seen.has(key)) return;
         seen.add(key);
         const birthYear = d.getFullYear();
+        const turning = birthYear > 1900 ? thisYear - birthYear : null;
+        const household = householdRecipient(c);
         rows.push({
           id: c.id,
           name,
+          sub: household && household !== name ? household : '',
           day: d.getDate(),
           monthDay: `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`,
-          turning: birthYear > 1900 ? thisYear - birthYear : null,
+          metric: turning != null ? 'Turns ' + turning : '—',
+          metricValue: turning != null ? turning : '',
           cell: String(c['cell' + n] || c.cell1 || '').trim(),
           email: String(c['email' + n] || c.email1 || '').trim(),
-          household: householdRecipient(c),
           address: fullAddress(c),
           status: clientOwnership(c)
         });
@@ -4019,7 +4032,48 @@
     return rows.sort((a, b) => a.day - b.day || a.name.localeCompare(b.name));
   }
 
-  function openBirthdayPage() {
+  function getAnniversaryRecords() {
+    const month = birthdayMonth;
+    const thisYear = new Date().getFullYear();
+    const seen = new Set();
+    const rows = [];
+    currentClientRows().forEach(c => {
+      const status = clientOwnership(c);
+      if (status === 'nlor') return; // no longer owner, skip
+      const livingExists = [1, 2, 3, 4].some(n => (c['borrower' + n + 'first'] || c['borrower' + n + 'last']) && !c['deceased' + n]);
+      if (!livingExists) return;
+      const d = parseIsoLocalDate(c.closing);
+      if (!d || d.getMonth() !== month) return;
+      const name = householdRecipient(c);
+      const key = `${name}|${d.getMonth()}-${d.getDate()}`.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      const years = thisYear - d.getFullYear();
+      rows.push({
+        id: c.id,
+        name,
+        sub: '',
+        day: d.getDate(),
+        monthDay: `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`,
+        metric: years >= 0 ? `${years} yr` : '—',
+        metricValue: years >= 0 ? years : '',
+        cell: String(c.cell1 || '').trim(),
+        email: String(c.email1 || '').trim(),
+        address: fullAddress(c),
+        status
+      });
+    });
+    return rows.sort((a, b) => a.day - b.day || a.name.localeCompare(b.name));
+  }
+
+  function getOutreachRecords() {
+    return outreachMode === 'anniversary' ? getAnniversaryRecords() : getBirthdayRecords();
+  }
+
+  function openBirthdayPage() { openOutreachPage('birthday'); }
+  function openAnniversaryPage() { openOutreachPage('anniversary'); }
+
+  function openOutreachPage(mode) {
     closeClientDrawer();
     closePartnerDrawer();
     closeActionMenu();
@@ -4027,6 +4081,7 @@
     document.getElementById('referralPartnersView').hidden = true;
     document.getElementById('mailMergeView').hidden = true;
     document.getElementById('birthdayView').hidden = false;
+    outreachMode = mode;
     birthdayMonth = new Date().getMonth();
     renderBirthdayPage();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4043,19 +4098,39 @@
     renderBirthdayPage();
   }
 
+  function setOutreachMode(mode) {
+    outreachMode = mode;
+    renderBirthdayPage();
+  }
+
   function renderBirthdayPage() {
+    const anniversary = outreachMode === 'anniversary';
+
+    document.querySelectorAll('#outreachModeButtons .year-filter-btn').forEach(b => {
+      const on = b.dataset.mode === outreachMode;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', on);
+    });
+
     document.getElementById('birthdayMonthButtons').innerHTML = MONTHS_SHORT.map((m, i) => `
       <button class="year-filter-btn${birthdayMonth === i ? ' active' : ''}"
         onclick="setBirthdayMonth(${i})" aria-pressed="${birthdayMonth === i}">${m}</button>`).join('');
 
-    const rows = getBirthdayRecords();
-    document.getElementById('birthday-summary-count').textContent = rows.length;
+    document.getElementById('outreachColDate').textContent = anniversary ? 'Closing' : 'Birthday';
+    document.getElementById('outreachColMetric').textContent = anniversary ? 'Years' : 'Age';
+    document.getElementById('outreach-summary-label').textContent = anniversary ? 'Loan anniversaries in' : 'Birthdays in';
     document.getElementById('birthday-summary-month').textContent = MONTHS_FULL[birthdayMonth];
+
+    const rows = getOutreachRecords();
+    document.getElementById('birthday-summary-count').textContent = rows.length;
 
     const body = document.getElementById('birthdayBody');
     const empty = document.getElementById('birthdayEmptyState');
     body.innerHTML = '';
     empty.style.display = rows.length ? 'none' : 'block';
+    empty.querySelector('p').textContent = anniversary
+      ? 'No loan anniversaries on file for this month.'
+      : 'No birthdays on file for this month.';
 
     rows.forEach(r => {
       const tr = document.createElement('tr');
@@ -4065,9 +4140,9 @@
       tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openClientDrawer(r.id, false); } });
       const contact = [r.cell, r.email].filter(Boolean).map(esc).join(' · ') || '<span class="sub">— no contact —</span>';
       tr.innerHTML = `
-        <td><div class="primary">${esc(r.name)}</div>${r.household && r.household !== r.name ? `<div class="sub">${esc(r.household)}</div>` : ''}</td>
+        <td><div class="primary">${esc(r.name)}</div>${r.sub ? `<div class="sub">${esc(r.sub)}</div>` : ''}</td>
         <td>${esc(r.monthDay)}</td>
-        <td>${r.turning != null ? 'Turns ' + r.turning : '—'}</td>
+        <td>${esc(r.metric)}</td>
         <td>${contact}</td>
         <td>${esc(r.address) || '<span class="sub">—</span>'}${ownershipStatusBadge(r.status) ? '<br>' + ownershipStatusBadge(r.status) : ''}</td>`;
       body.appendChild(tr);
@@ -4075,14 +4150,19 @@
   }
 
   function exportBirthdayCsv() {
-    const rows = getBirthdayRecords();
-    if (!rows.length) { alert('No birthdays in this month to export.'); return; }
-    const headers = ['Name', 'Birthday', 'Turning', 'Phone', 'Email', 'Property', 'Ownership'];
+    const rows = getOutreachRecords();
+    const anniversary = outreachMode === 'anniversary';
+    if (!rows.length) {
+      alert(anniversary ? 'No loan anniversaries in this month to export.' : 'No birthdays in this month to export.');
+      return;
+    }
+    const headers = ['Name', anniversary ? 'Closing' : 'Birthday', anniversary ? 'Years' : 'Turning', 'Phone', 'Email', 'Property', 'Ownership'];
     const lines = [headers.map(csvCell).join(',')];
     rows.forEach(r => {
-      lines.push([r.name, r.monthDay, r.turning != null ? r.turning : '', r.cell, r.email, r.address, r.status].map(csvCell).join(','));
+      lines.push([r.name, r.monthDay, r.metricValue, r.cell, r.email, r.address, r.status].map(csvCell).join(','));
     });
-    downloadBlob('﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8', `irmae_birthdays_${MONTHS_SHORT[birthdayMonth].toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`);
+    const kind = anniversary ? 'anniversaries' : 'birthdays';
+    downloadBlob('﻿' + lines.join('\r\n'), 'text/csv;charset=utf-8', `irmae_${kind}_${MONTHS_SHORT[birthdayMonth].toLowerCase()}_${new Date().toISOString().slice(0, 10)}.csv`);
   }
 
   function renderReferralPartnersPage(rows = getReferralPartnerStats(getFilteredClients())) {
