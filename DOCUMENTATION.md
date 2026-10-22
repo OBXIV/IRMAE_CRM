@@ -142,9 +142,30 @@ This script also runs from a local scheduled task at 06:14 daily for a morning s
 ## 7. Monitoring and Alerting
 
 - Function logs: `cd functions && npm run logs` (or `firebase functions:log`).
-- Breakage signal: an ERROR log line `[ownership][ALERT] ...` plus `/systemHealth/ownership` in RTDB whenever a county returns zero owners across at least 5 routed lookups in a run.
-- Recommended alert: a Cloud Logging log-based alert policy on `severity=ERROR` containing `[ownership][ALERT]` routed to email/SMS. Optional instant webhook via `OWNERSHIP_ALERT_WEBHOOK_URL`.
-- Health check on counts: compare the daily snapshot deltas. All-zero ownership movement on a normal day can indicate the nightly run did not execute.
+- The nightly job emits two signals every run:
+  - `[ownership][ALERT] ...` (ERROR) plus `/systemHealth/ownership` in RTDB when a county returns zero owners across at least 5 routed lookups (a scraper broke).
+  - `[ownership] run complete ...` (INFO) on every successful run — the success heartbeat.
+
+### Configured alerts (project `iramecrm`, Cloud Monitoring)
+
+Email notification channel **IRMAE ownership alerts** → `mario@obliox.io`. Two enabled policies:
+
+1. **IRMAE ownership provider breakage** — log-based alert, filter `severity>=ERROR AND "[ownership][ALERT]"`. Catches a county scraper breaking during a run.
+2. **IRMAE ownership nightly run missing** — metric-threshold alert on the log metric `ownership_run_complete` (counts `[ownership] run complete` on the `nightlyownershipcheck` service). Fires when no successful run is logged in 24h, i.e. the job stopped running. This is the outage class that went unnoticed for five weeks in 2026. A metric-absence condition cannot cover a 24h-cadence job (its window maxes at 23h30m), so this uses a 24h rolling `ALIGN_SUM < 1` with missing data treated as breaching.
+
+Inspect or re-create:
+
+```bash
+gcloud alpha monitoring policies list --project=iramecrm --format="csv(displayName,enabled)"
+gcloud alpha monitoring channels list --project=iramecrm --format="csv(displayName,labels.email_address,enabled)"
+gcloud logging metrics describe ownership_run_complete --project=iramecrm
+```
+
+Backstops independent of Cloud Monitoring:
+
+- The daily snapshot (`scripts/ownership-snapshot.js`) checks `/systemHealth/ownership.at` and exits non-zero when it is older than 36h.
+- Optional instant breakage webhook via `OWNERSHIP_ALERT_WEBHOOK_URL` (see Secrets).
+- Count sanity: all-zero ownership movement in the daily snapshot delta on a normal day can mean the nightly run did not execute.
 
 ---
 
