@@ -11,12 +11,20 @@
 //   node scripts/ownership-snapshot.js --file x.json   # use a local /clients dump instead
 //
 // Snapshots are written to scripts/ownership-snapshots/YYYY-MM-DD.json
+//
+// On a live pull it also checks the nightly job's heartbeat
+// (/systemHealth/ownership.at) and exits non-zero if it is older than 36h, so a
+// stalled job is caught instead of going silent.
 
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
 const SNAP_DIR = path.join(__dirname, 'ownership-snapshots');
+// The nightly ownership function stamps /systemHealth/ownership.at on every run.
+// If that timestamp goes stale the job has stopped (it silently did for 5 weeks
+// once), which a success-only alert never caught. Flag anything older than this.
+const HEARTBEAT_STALE_HOURS = 36;
 
 // ---- helpers copied verbatim from index.html (pure logic only) -------------
 const BORROWER_CANONICAL_NAMES = {
@@ -251,6 +259,59 @@ function pruneSnapshots(keep) {
   return stale;
 }
 
+function loadHeartbeat() {
+  const env = { ...process.env };
+  env.PATH = ['/opt/homebrew/bin', '/usr/local/bin', env.PATH].filter(Boolean).join(':');
+  const raw = execSync('firebase database:get /systemHealth/ownership --project iramecrm', {
+    encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, env
+  });
+  const val = JSON.parse(raw);
+  return val && typeof val === 'object' ? val : null;
+}
+
+// Pure classifier so the threshold logic is testable without a live DB.
+function heartbeatStatus(hb, nowMs = Date.now()) {
+  if (!hb || !hb.at) {
+    return { level: 'stale', message: 'no ownership heartbeat at /systemHealth/ownership — the nightly job may have never run' };
+  }
+  const ageHours = (nowMs - Number(hb.at)) / 3600000;
+  const when = new Date(Number(hb.at));
+  if (ageHours > HEARTBEAT_STALE_HOURS) {
+    return {
+      level: 'stale', ageHours, when, alert: hb.alert,
+      message: `ownership nightly job last ran ${ageHours.toFixed(1)}h ago (${when.toISOString()}), past the ${HEARTBEAT_STALE_HOURS}h limit — it may be stalled`
+    };
+  }
+  return { level: 'ok', ageHours, when, alert: hb.alert };
+}
+
+function reportHeartbeat(fileArg) {
+  if (fileArg) {
+    console.log('  heartbeat: skipped (--file mode, no live DB)');
+    return;
+  }
+  let hb;
+  try {
+    hb = loadHeartbeat();
+  } catch (err) {
+    console.log(`  heartbeat: WARN — could not read /systemHealth/ownership (${String(err.message || err).split('\n')[0]})`);
+    return;
+  }
+  const status = heartbeatStatus(hb);
+  if (status.level === 'ok') {
+    console.log(`  heartbeat: nightly job ran ${status.ageHours.toFixed(1)}h ago ✓` +
+      (status.alert ? `   [last run flagged: ${status.alert}]` : ''));
+    return;
+  }
+  // stale or missing — loud, and fail the process so a scheduled run surfaces it.
+  process.exitCode = 1;
+  console.error('\n  ======================================================');
+  console.error('  !!  OWNERSHIP HEARTBEAT STALE');
+  console.error(`  ${status.message}`);
+  console.error('  Check the nightly function: billing, scheduler, last deploy.');
+  console.error('  ======================================================');
+}
+
 function main() {
   const fileArg = process.argv.includes('--file')
     ? process.argv[process.argv.indexOf('--file') + 1] : null;
@@ -278,9 +339,12 @@ function main() {
   console.log(`  address needs review: ${snap.addressNeedsReview}` +
     (prior ? `   (${delta(snap.addressNeedsReview, prior.data.addressNeedsReview)})` : ''));
   if (!prior) console.log(`  (no prior snapshot yet — deltas start tomorrow)`);
+  reportHeartbeat(fileArg);
   console.log(`\n  saved ${path.relative(process.cwd(), outPath)}`);
   if (pruned.length) console.log(`  pruned ${pruned.length} old snapshot${pruned.length > 1 ? 's' : ''} (keeping last 3): ${pruned.join(', ')}`);
   console.log('');
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = { heartbeatStatus, HEARTBEAT_STALE_HOURS };
