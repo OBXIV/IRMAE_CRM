@@ -72,6 +72,7 @@ On **September 13** the Google Cloud free trial behind the project expired witho
 - **Node 22 (Oct 21):** Cloud Functions moved off Node 20 ahead of its October 30 retirement.
 - **Import fixes and 2026 loans (Oct 21):** import accepts more column names, keeps every person from joint name cells, and gives clearer errors. 43 loans closing in 2026 were imported.
 - **Refi Watch worklist (Oct 21):** the Refi Watch flag became an actionable list. Each flagged loan can be marked contacted (which auto-schedules a follow-up in 90 days), snoozed, or dismissed, and the dashboard count now reflects what still needs working rather than the raw flag total.
+- **Birthday outreach (Oct 21):** a month-by-month list of client birthdays for relationship calls, with the age they turn and contact info, reusing the mailers table and CSV export. Loan anniversaries can join the same view later.
 
 ---
 
@@ -94,6 +95,7 @@ Newest first. Commit hashes are in git; this table is the readable version.
 
 | Date | Change |
 |---|---|
+| 2026-10-21 | Birthday Outreach page: clients with birthdays in a selected month (defaults to the current month), showing the age they turn, phone and email, and property with ownership. Dedupes repeat clients, skips deceased borrowers, covers both borrowers, and exports CSV. Reached from the menu and a Birthdays button next to Mailers |
 | 2026-10-21 | Refi Watch became a worklist: per-loan Contacted / Snooze (30 or 90 day) / Dismiss / Reset state, the dashboard card shows the active count that drops as the list is worked, a scope bar switches between to-work / snoozed / dismissed / all-flagged, and each flagged record shows its rate-vs-market delta. A failed write never changes the saved state |
 | 2026-10-21 | Spreadsheet import accepts "Borrower First Name" / "Borrower Last Name" style headers, keeps every person from joint name cells ("A & B" + "Smith", or "A" + "Smith & B Jones"), and shows a specific error when the header row or name columns are missing. 43 loans closing in 2026 imported |
 | 2026-10-21 | Cloud Functions moved to Node 22 (firebase-functions 7.4, firebase-admin 14.5) ahead of the Oct 30 Node 20 cutoff; forced run on the new runtime succeeded |

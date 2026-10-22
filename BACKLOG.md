@@ -22,7 +22,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 
 - [ ] **Check mobile on a real iPhone.** Emulator testing done; confirm Safari specifics (notch, collapsing toolbar, form Save bar) on her phone.
 
-- [ ] **Birthday and loan-anniversary outreach list.** Birthdays and closing dates are already captured but unused. Surface a "this month" list of birthdays and closing anniversaries, and let the mailers engine target these relationship touches, not just quarterly ownership mail.
+- [ ] **Loan-anniversary outreach.** Birthday outreach shipped. Extend the same Outreach view with a loan-anniversary mode (clients whose closing anniversary falls in the selected month) so closing dates drive relationship touches too.
 
 - [ ] **Per-client notes / dated contact log.** No place to record a call or a note today. Add a dated notes box on the client drawer so manual outreach and status work have a home. Pairs with the Refi Watch worklist (a "contacted" entry could capture what was said).
 
