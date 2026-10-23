@@ -276,3 +276,30 @@ test('a run that hits its time budget stops cleanly and still writes the heartbe
   const healthWrite = db.sets.find((s) => s.path === 'systemHealth/ownership');
   assert.ok(healthWrite, 'heartbeat written even when stopping early');
 });
+
+test('a no-owner result is not retried until RETRY_UNRESOLVED_AFTER_DAYS have passed', async () => {
+  const now = 1710000000000;
+  const day = 86400000;
+  const base = { address: '1 Main St', city: 'Boise', borrower1first: 'John', borrower1last: 'Smith', ownershipStatus: 'unverified' };
+  const db = createMockDb({
+    recentNoOwner: { ...base, ownershipCheckStatus: 'no_owner_found', ownershipLastAttemptAt: now - 3 * day },
+    recentNoMatch: { ...base, ownershipCheckStatus: 'no_confident_match', ownershipLastAttemptAt: now - 3 * day },
+    oldNoOwner: { ...base, ownershipCheckStatus: 'no_owner_found', ownershipLastAttemptAt: now - 20 * day },
+    recentSiteError: { ...base, ownershipCheckStatus: 'lookup_failed', ownershipLastAttemptAt: now - 1 * day },
+  });
+  const looked = [];
+  const summary = await runOwnershipCheck(db, {
+    now,
+    logger: { info() {}, warn() {}, error() {} },
+    delayMs: 0,
+    getProviderForCounty: () => ({
+      lookupOwner: async (client) => { looked.push(client.address + '|' + client.ownershipCheckStatus); return null; },
+    }),
+  });
+
+  assert.strictEqual(summary.skipped_retry_later, 2);
+  assert.strictEqual(summary.looked_up, 2);
+  assert.deepStrictEqual(looked.map(l => l.split('|')[1]).sort(), ['lookup_failed', 'no_owner_found']);
+  assert.strictEqual(db.data.clients.recentNoOwner.ownershipLastAttemptAt, now - 3 * day);
+  assert.strictEqual(db.data.clients.oldNoOwner.ownershipLastAttemptAt, now);
+});

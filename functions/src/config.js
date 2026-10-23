@@ -12,6 +12,11 @@ const REQUEST_TIMEOUT_MS = 45000;
 // nightly run spreads load and converges instead of hammering every record.
 const RECHECK_AFTER_DAYS = 30;
 
+// When the county returned no owner (or none that confidently matched), wait
+// this long before trying that record again. Retrying them nightly let a
+// growing pool of unresolvable addresses use up the run's time budget.
+const RETRY_UNRESOLVED_AFTER_DAYS = 14;
+
 // Hard cap on lookups per run (backstop against runaway cost / blocks).
 const MAX_LOOKUPS_PER_RUN = 400;
 
@@ -73,6 +78,7 @@ module.exports = {
   REQUEST_DELAY_MS,
   REQUEST_TIMEOUT_MS,
   RECHECK_AFTER_DAYS,
+  RETRY_UNRESOLVED_AFTER_DAYS,
   MAX_LOOKUPS_PER_RUN,
   RUN_TIME_BUDGET_MS,
   ALERT_MIN_SAMPLE,

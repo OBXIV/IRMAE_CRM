@@ -184,7 +184,7 @@ Backstops independent of Cloud Monitoring:
 5. Add a test in `functions/test/`, run `npm test`, then deploy.
 
 ### Tune run behavior
-Edit `functions/src/config.js`: `REQUEST_DELAY_MS`, `REQUEST_TIMEOUT_MS`, `RECHECK_AFTER_DAYS`, `MAX_LOOKUPS_PER_RUN`, `ALERT_MIN_SAMPLE`. Redeploy functions.
+Edit `functions/src/config.js`: `REQUEST_DELAY_MS`, `REQUEST_TIMEOUT_MS`, `RECHECK_AFTER_DAYS`, `RETRY_UNRESOLVED_AFTER_DAYS`, `MAX_LOOKUPS_PER_RUN`, `RUN_TIME_BUDGET_MS`, `ALERT_MIN_SAMPLE`. Redeploy functions.
 
 ---
 

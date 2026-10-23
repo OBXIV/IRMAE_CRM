@@ -134,7 +134,7 @@ Entry: `functions/index.js` -> `functions/src/runOwnershipCheck.js`.
 
 Per-run loop, for each client:
 1. Skip if no `address`.
-2. Skip if checked within `RECHECK_AFTER_DAYS` (30) so load spreads and converges.
+2. Skip if checked within `RECHECK_AFTER_DAYS` (30), or if the last attempt found no usable owner within `RETRY_UNRESOLVED_AFTER_DAYS` (14), so load spreads and converges.
 3. Route the record to a county via city, then zip fallback (`config.js` `CITY_COUNTY` / `ZIP_COUNTY`).
 4. Street-only records (street present, no city/zip/county, Idaho only) take a two-signal probe across counties. A winner requires exactly one county whose owner name confidently matches and whose situs parses with the street anchored. Otherwise the record is marked `needs_review`.
 5. Routable records call the county provider, match the returned owner name (`matchOwnership.js`), and write `ownershipStatus`, `ownershipOwnerName`, `ownershipCheckedAt`. Missing address parts are enriched from the parcel situs when the parse is street-anchored and confident.
@@ -145,9 +145,11 @@ Guardrails (`config.js`):
 - `REQUEST_TIMEOUT_MS` 45000 — per HTTP request.
 - `MAX_LOOKUPS_PER_RUN` 400 — runaway cost / block backstop.
 - `RECHECK_AFTER_DAYS` 30 — re-check cadence.
+- `RETRY_UNRESOLVED_AFTER_DAYS` 14: wait before retrying a no-owner or no-match result. Site errors (`lookup_failed`) still retry nightly.
+- `RUN_TIME_BUDGET_MS` 420000: stop starting lookups after 7 minutes so every run ends cleanly inside the 540s timeout.
 - Browser-like `USER_AGENT` to avoid trivial bot 403s.
 
-Run summary fields: `looked_up`, `updated`, `failed`, `skipped_no_address`, `skipped_recent`, `skipped_no_county`, `unsupported_county`, `street_only_probed`, `address_enriched`, `address_needs_review`, `by_status` (per ownership status).
+Run summary fields: `looked_up`, `updated`, `failed`, `skipped_no_address`, `skipped_recent`, `skipped_retry_later`, `stopped_for_time`, `skipped_no_county`, `unsupported_county`, `street_only_probed`, `address_enriched`, `address_needs_review`, `by_status` (per ownership status).
 
 ### Providers
 Registry: `functions/src/providers/index.js`. Each provider exposes `lookupOwner(client) -> { ownerName, situsRaw } | null` and throws on HTTP error. Implemented: `adaProvider`, `canyonProvider`. Adding a county:

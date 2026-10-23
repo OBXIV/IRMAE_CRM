@@ -8,6 +8,7 @@ const { detectBrokenProviders, buildAlertMessage, postAlertWebhook } = require('
 const {
   REQUEST_DELAY_MS,
   RECHECK_AFTER_DAYS,
+  RETRY_UNRESOLVED_AFTER_DAYS,
   MAX_LOOKUPS_PER_RUN,
   RUN_TIME_BUDGET_MS,
   ALERT_MIN_SAMPLE,
@@ -16,10 +17,21 @@ const {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const UNRESOLVED_CHECK_STATUSES = new Set(['no_owner_found', 'no_confident_match']);
+
 function recentlyChecked(client, now) {
   if (!client.ownershipCheckedAt) return false;
   const ageDays = (now - Number(client.ownershipCheckedAt)) / 86400000;
   return ageDays < RECHECK_AFTER_DAYS;
+}
+
+// The county answered but gave no usable owner. Back off instead of retrying
+// nightly; `lookup_failed` (site errors) is not included and retries nightly.
+function waitingToRetryUnresolved(client, now) {
+  if (!UNRESOLVED_CHECK_STATUSES.has(client.ownershipCheckStatus)) return false;
+  if (!client.ownershipLastAttemptAt) return false;
+  const ageDays = (now - Number(client.ownershipLastAttemptAt)) / 86400000;
+  return ageDays < RETRY_UNRESOLVED_AFTER_DAYS;
 }
 
 // A record qualifies for the street-only two-signal probe when it has a street
@@ -81,6 +93,7 @@ async function runOwnershipCheck(
     skipped_no_county: 0,
     unsupported_county: 0,
     skipped_recent: 0,
+    skipped_retry_later: 0,
     skipped_no_address: 0,
     failed: 0,
     address_enriched: 0,
@@ -104,6 +117,7 @@ async function runOwnershipCheck(
     const client = clients[id] || {};
     if (!client.address) { summary.skipped_no_address++; continue; }
     if (recentlyChecked(client, now)) { summary.skipped_recent++; continue; }
+    if (waitingToRetryUnresolved(client, now)) { summary.skipped_retry_later++; continue; }
 
     const county = routeCounty(client);
     if (!county) {
