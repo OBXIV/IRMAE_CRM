@@ -607,6 +607,69 @@
     }
     .mailing-suggestion strong { color: var(--text); font-weight: 600; }
     td .mailing-suggestion { margin: 6px 0 0; }
+    .addr-review-card {
+      display: grid;
+      gap: 10px;
+      margin: 16px 0;
+      padding: 18px 20px;
+      background: rgba(18, 28, 46, 0.92);
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--warn);
+      border-radius: 8px;
+    }
+    .addr-review-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .addr-review-pos { color: var(--muted); font-size: 0.8rem; font-weight: 750; }
+    .addr-review-name { color: var(--text); font-size: 1.15rem; font-weight: 850; line-height: 1.25; }
+    .addr-review-meta,
+    .addr-review-current { color: var(--muted); font-size: 0.84rem; line-height: 1.45; }
+    .addr-review-current strong { color: var(--text); font-weight: 650; }
+    .addr-review-card .mailing-suggestion { margin: 0; }
+    .addr-review-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }
+    .addr-review-link { color: #7dd3fc; font-size: 0.84rem; font-weight: 700; text-decoration: none; }
+    .addr-review-link:hover { text-decoration: underline; }
+    .addr-review-list { display: grid; gap: 8px; }
+    .addr-review-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(8, 13, 23, 0.48);
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+    .addr-review-item:hover { border-color: rgba(56, 189, 248, 0.48); }
+    .addr-review-item.active { border-color: rgba(245, 158, 11, 0.6); background: rgba(245, 158, 11, 0.08); }
+    .addr-review-item .primary { font-weight: 750; }
+    .addr-review-item .sub { color: var(--muted); font-size: 0.78rem; margin-top: 3px; overflow-wrap: anywhere; }
+    .addr-review-done {
+      margin: 16px 0;
+      padding: 28px 18px;
+      text-align: center;
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.32);
+      border-radius: 8px;
+      color: var(--text);
+    }
+    .addr-review-done strong { display: block; font-size: 1.1rem; margin-bottom: 6px; }
+    .addr-review-done span { color: var(--muted); font-size: 0.86rem; }
+    .addr-review-notice {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 14px;
+      margin: 12px 0;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 8px;
+    }
 
     .market-panel {
       display: grid;
@@ -1437,6 +1500,7 @@
       <button class="btn menu-trigger" id="actionMenuButton" onclick="toggleActionMenu(event)" aria-label="Client menu" aria-expanded="false">☰</button>
       <div class="action-menu" id="actionMenu">
         <button class="menu-item" onclick="openMailMergePage()">Mailers / Mail Merge</button>
+        <button class="menu-item" onclick="openAddressReviewPage()">Address Review</button>
         <button class="menu-item" onclick="openBirthdayPage()">Birthday Outreach</button>
         <button class="menu-item" onclick="openAnniversaryPage()">Loan Anniversaries</button>
         <button class="menu-item" onclick="importClientsFromMenu()">Import Clients</button>
@@ -1624,7 +1688,7 @@
         <div class="num" id="mail-summary-count">0</div>
         <div class="lbl">Mailable Records</div>
       </div>
-      <div class="partner-summary actionable" id="mail-review-card" onclick="toggleMailReview()" role="button" tabindex="0" title="Show records that need a mailing address fixed">
+      <div class="partner-summary actionable" id="mail-review-card" onclick="openAddressReviewPage()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openAddressReviewPage();}" role="button" tabindex="0" title="Open the Address Review worklist">
         <div class="num" id="mail-summary-missing">0</div>
         <div class="lbl">Needs Address Review</div>
       </div>
@@ -1704,6 +1768,42 @@
         <p>No birthdays on file for this month.</p>
       </div>
     </div>
+  </section>
+
+  <section class="page-view mailmerge-page" id="addressReviewView" hidden>
+    <div class="page-head">
+      <div>
+        <div class="page-kicker">Data cleanup</div>
+        <h2>Address Review</h2>
+      </div>
+      <button class="btn btn-cancel" onclick="closeAddressReviewPage()">Back to Dashboard</button>
+    </div>
+
+    <div class="mailmerge-controls">
+      <div class="filter-group">
+        <div class="filter-label">Problem</div>
+        <div class="year-filter-buttons" id="addrReviewFilterButtons"></div>
+      </div>
+    </div>
+
+    <div class="mailmerge-summary-grid">
+      <div class="partner-summary">
+        <div class="num" id="addr-review-remaining">0</div>
+        <div class="lbl">Left to fix</div>
+      </div>
+      <div class="partner-summary">
+        <div class="num" id="addr-review-fixed">0</div>
+        <div class="lbl">Fixed this session</div>
+      </div>
+      <div class="partner-summary">
+        <div class="num" id="addr-review-cantfix">0</div>
+        <div class="lbl">Marked can't fix</div>
+      </div>
+    </div>
+
+    <div id="addrReviewNotice"></div>
+    <div id="addrReviewFocus"></div>
+    <div class="addr-review-list" id="addrReviewList"></div>
   </section>
 </div>
 
@@ -3440,39 +3540,32 @@
     await saveDrawerEdits();
   }
 
-  async function applySuggestedMailingAddress(id) {
-    if (!db || !currentUser) { alert('Please sign in first.'); return; }
-    const c = clients.find(x => x.id === id);
-    const s = c && suggestedMailingAddress(c);
-    if (!s) return;
-    const updates = {
-      mailingaddress: s.address,
-      mailingcity: s.city,
-      mailingstate: s.state,
-      mailingzip: s.zip,
-      updatedAt: Date.now()
-    };
-    try {
-      await db.ref(CLIENTS_PATH + '/' + id).update(updates);
-      Object.assign(c, updates);
-      invalidateClientViewCache();
-      renderTable();
-      renderMailMergePage();
-      showBanner('Mailing address saved.');
-      setTimeout(hideBanner, 1800);
-    } catch (err) {
-      alert('Could not save the mailing address. Please try again.');
-      console.error(err);
-    }
-  }
-
   function syncMailingSection(selectId, sectionId) {
     const section = document.getElementById(sectionId);
     if (section) section.hidden = !isNonPrimary(document.getElementById(selectId)?.value);
   }
 
+  // What still blocks a usable mailing address, or '' when nothing does. The
+  // county probe's needs_review flag only matters while the property address
+  // is incomplete, so a leftover flag on a complete address is ignored.
+  function addressReviewCategory(c) {
+    if (!String(c.address || '').trim()) return 'no_street';
+    if (!hasMailableAddress(c)) return 'no_city_zip';
+    if (needsMailingAddress(c)) return 'needs_mailing';
+    return '';
+  }
+
   function needsAddressReview(c) {
-    return c.addressEnrichmentStatus === 'needs_review' || !hasMailableAddress(c) || needsMailingAddress(c);
+    return !!addressReviewCategory(c);
+  }
+
+  function hasStaleReviewFlag(c) {
+    return c.addressEnrichmentStatus === 'needs_review' && hasMailableAddress(c);
+  }
+
+  // Clears the county probe's flag when a save leaves the property address complete.
+  function reviewFlagPatch(merged) {
+    return hasStaleReviewFlag(merged) ? { addressEnrichmentStatus: 'resolved', addressReviewedAt: Date.now() } : {};
   }
 
   function addressEnrichmentBadge(c) {
@@ -3483,7 +3576,7 @@
       return `<span class="badge badge-enriched" title="Address auto-filled from county assessor (${esc(c.addressEnrichmentSource || 'county')})">Address auto-filled</span>`;
     }
     if (needsAddressReview(c)) {
-      return `<span class="badge badge-review" title="Could not confidently auto-fill a mailing address — needs manual review">Address review</span>`;
+      return `<span class="badge badge-review" title="Property address is incomplete; fix it from Address Review">Address review</span>`;
     }
     return '';
   }
@@ -3663,6 +3756,7 @@
       referral: cleanReferralName(drawerValue('referral')),
       updatedAt: Date.now()
     };
+    Object.assign(updates, reviewFlagPatch({ ...existing, ...updates }));
 
     try {
       await db.ref(CLIENTS_PATH + '/' + selectedClientId).set({
@@ -3781,7 +3875,6 @@
   // ── Mail Merge ───────────────────────────────────────────
   let mailOwnershipFilter = 'all';
   let mailYearFilter = 'all';
-  let mailReviewOnly = false;
 
   function matchesMailScope(c) {
     const status = clientOwnership(c);
@@ -3791,13 +3884,326 @@
     return true;
   }
 
-  function getAddressReviewRecords() {
-    return sortedClients().filter(c => matchesMailScope(c) && needsAddressReview(c));
+  // ── Address Review ───────────────────────────────────────
+  const ADDRESS_REVIEW_FILTERS = [
+    { key: 'all',           label: 'All to fix' },
+    { key: 'no_city_zip',   label: 'Missing city & zip' },
+    { key: 'needs_mailing', label: 'Needs mailing address' },
+    { key: 'no_street',     label: 'Missing street' },
+    { key: 'cant_fix',      label: "Can't fix" }
+  ];
+  const ADDRESS_REVIEW_LABELS = {
+    no_city_zip: 'Missing city and zip',
+    needs_mailing: 'Needs owner mailing address',
+    no_street: 'Missing street address'
+  };
+  let addressReviewFilter = 'all';
+  let addressReviewFocusId = null;
+  const addressReviewSession = { fixed: 0, cantFix: 0 };
+
+  // Every loan, like the mailers, so a rental behind the owner's newer home
+  // loan still gets its own mailing address.
+  function addressReviewQueue(filter = addressReviewFilter) {
+    const pool = sortedClients().filter(needsAddressReview);
+    if (filter === 'cant_fix') return pool.filter(c => c.addressReviewDismissed);
+    const active = pool.filter(c => !c.addressReviewDismissed);
+    return filter === 'all' ? active : active.filter(c => addressReviewCategory(c) === filter);
   }
 
-  function toggleMailReview() {
-    mailReviewOnly = !mailReviewOnly;
-    renderMailMergePage();
+  // City and zip from the same borrower's other loan on the same street.
+  // Requiring a shared borrower avoids matching the same street in another city.
+  function sameStreetAddressSuggestion(c) {
+    if (addressReviewCategory(c) !== 'no_city_zip') return null;
+    const match = clients
+      .filter(o => o.id !== c.id && String(o.city || '').trim() && String(o.zip || '').trim()
+        && streetAddressesMatch(c, o) && hasSharedBorrower(c, o))
+      .sort(compareLoansNewestFirst)[0];
+    if (!match) return null;
+    return {
+      city: String(match.city).trim(),
+      state: String(match.state || '').trim(),
+      zip: String(match.zip).trim(),
+      closing: match.closing
+    };
+  }
+
+  function openAddressReviewPage() {
+    closeClientDrawer();
+    closePartnerDrawer();
+    closeActionMenu();
+    document.querySelectorAll('.page-view').forEach(view => { view.hidden = view.id !== 'addressReviewView'; });
+    document.getElementById('referralPartnersView').hidden = true;
+    renderAddressReviewPage();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function closeAddressReviewPage() {
+    document.getElementById('addressReviewView').hidden = true;
+    document.getElementById('dashboardView').hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function setAddressReviewFilter(key) {
+    addressReviewFilter = key;
+    addressReviewFocusId = null;
+    renderAddressReviewPage();
+  }
+
+  function focusAddressReview(id) {
+    addressReviewFocusId = id;
+    renderAddressReviewPage();
+    document.getElementById('addrReviewFocus').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function stepAddressReview(delta) {
+    const queue = addressReviewQueue();
+    if (!queue.length) return;
+    const index = Math.max(0, queue.findIndex(c => c.id === addressReviewFocusId));
+    addressReviewFocusId = queue[(index + delta + queue.length) % queue.length].id;
+    renderAddressReviewPage();
+  }
+
+  // After the focused record leaves the queue, show whatever moved into its place.
+  function advanceAddressReview(previousIndex) {
+    const queue = addressReviewQueue();
+    addressReviewFocusId = queue.length ? queue[Math.min(previousIndex, queue.length - 1)].id : null;
+    renderAddressReviewPage();
+  }
+
+  async function updateAddressReviewRecord(id, updates, bannerMsg) {
+    if (!db || !currentUser) { alert('Please sign in first.'); return false; }
+    const c = clients.find(x => x.id === id);
+    if (!c) return false;
+    updates.updatedAt = Date.now();
+    try {
+      await db.ref(CLIENTS_PATH + '/' + id).update(updates);
+      Object.assign(c, updates);
+      invalidateClientViewCache();
+      renderTable();
+      showBanner(bannerMsg);
+      setTimeout(hideBanner, 1800);
+      return true;
+    } catch (err) {
+      alert('Could not save this address. Please try again.');
+      console.error(err);
+      return false;
+    }
+  }
+
+  function addressReviewInputValues() {
+    const val = key => (document.getElementById('arv-' + key)?.value || '').trim();
+    return { address: val('address'), city: val('city'), state: val('state').toUpperCase(), zip: val('zip') };
+  }
+
+  async function saveAddressReviewFix(id, values = addressReviewInputValues()) {
+    const c = clients.find(x => x.id === id);
+    if (!c) return;
+    const index = addressReviewQueue().findIndex(x => x.id === id);
+    const mailing = addressReviewCategory(c) === 'needs_mailing';
+    const updates = mailing
+      ? { mailingaddress: values.address, mailingcity: values.city, mailingstate: values.state, mailingzip: values.zip }
+      : { address: values.address, city: values.city, state: values.state, zip: values.zip };
+    const merged = { ...c, ...updates };
+    if (mailing ? !hasMailingAddress(merged) : !hasMailableAddress(merged)) {
+      alert('Add the street plus a city or zip to complete this address.');
+      return;
+    }
+    Object.assign(updates, reviewFlagPatch(merged), { addressReviewedAt: Date.now(), addressReviewDismissed: null, addressReviewNote: null });
+    if (await updateAddressReviewRecord(id, updates, mailing ? 'Mailing address saved.' : 'Address saved.')) {
+      addressReviewSession.fixed++;
+      advanceAddressReview(index);
+    }
+  }
+
+  function applyAddressReviewSuggestion(id) {
+    const c = clients.find(x => x.id === id);
+    if (!c) return;
+    const mailingSuggestion = addressReviewCategory(c) === 'needs_mailing' ? suggestedMailingAddress(c) : null;
+    const streetSuggestion = sameStreetAddressSuggestion(c);
+    const s = mailingSuggestion || (streetSuggestion && { ...streetSuggestion, address: String(c.address || '').trim() });
+    return s ? saveAddressReviewFix(id, { address: s.address, city: s.city, state: String(s.state || '').toUpperCase(), zip: s.zip }) : undefined;
+  }
+
+  async function markAddressCantFix(id) {
+    const note = window.prompt("Why can't this address be fixed? (optional)", '');
+    if (note === null) return;
+    const index = addressReviewQueue().findIndex(x => x.id === id);
+    if (await updateAddressReviewRecord(id, {
+      addressReviewDismissed: true,
+      addressReviewNote: note.trim() || null,
+      addressReviewedAt: Date.now()
+    }, "Marked can't fix.")) {
+      addressReviewSession.cantFix++;
+      advanceAddressReview(index);
+    }
+  }
+
+  async function resetAddressReview(id) {
+    if (await updateAddressReviewRecord(id, { addressReviewDismissed: null, addressReviewNote: null }, 'Back in the review queue.')) {
+      renderAddressReviewPage();
+    }
+  }
+
+  async function clearStaleReviewFlags() {
+    const stale = clients.filter(hasStaleReviewFlag);
+    if (!stale.length) return;
+    if (!db || !currentUser) { alert('Please sign in first.'); return; }
+    if (!confirm(`Clear the old "needs review" flag on ${stale.length} records whose addresses are now complete?`)) return;
+    const now = Date.now();
+    const updates = {};
+    stale.forEach(c => {
+      updates[`${CLIENTS_PATH}/${c.id}/addressEnrichmentStatus`] = 'resolved';
+      updates[`${CLIENTS_PATH}/${c.id}/addressReviewedAt`] = now;
+    });
+    try {
+      await db.ref().update(updates);
+      stale.forEach(c => Object.assign(c, { addressEnrichmentStatus: 'resolved', addressReviewedAt: now }));
+      invalidateClientViewCache();
+      renderTable();
+      renderAddressReviewPage();
+      showBanner(`Cleared ${stale.length} old review flags.`);
+      setTimeout(hideBanner, 1800);
+    } catch (err) {
+      alert('Could not clear the flags. Please try again.');
+      console.error(err);
+    }
+  }
+
+  function addressReviewFieldsHtml(c, category) {
+    const mailing = category === 'needs_mailing';
+    const v = mailing
+      ? { address: c.mailingaddress, city: c.mailingcity, state: c.mailingstate, zip: c.mailingzip }
+      : { address: c.address, city: c.city, state: c.state, zip: c.zip };
+    const state = String(v.state || '').trim() || 'ID';
+    const enter = `onkeydown="if(event.key==='Enter'){event.preventDefault();saveAddressReviewFix('${esc(c.id)}');}"`;
+    return `
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="field">
+          <label>${mailing ? 'Mailing street' : 'Street address'}</label>
+          <input type="text" id="arv-address" value="${esc(v.address)}" ${enter} />
+        </div>
+      </div>
+      <div class="form-grid-3">
+        <div class="field"><label>City</label><input type="text" id="arv-city" value="${esc(v.city)}" ${enter} /></div>
+        <div class="field"><label>State</label><input type="text" id="arv-state" value="${esc(state)}" maxlength="2" ${enter} /></div>
+        <div class="field"><label>Zip</label><input type="text" id="arv-zip" value="${esc(v.zip)}" maxlength="10" ${enter} /></div>
+      </div>`;
+  }
+
+  function addressReviewSuggestionHtml(c, category) {
+    const id = esc(c.id);
+    if (category === 'needs_mailing') {
+      const s = suggestedMailingAddress(c);
+      return s ? mailingSuggestionHtml(s, `applyAddressReviewSuggestion('${id}')`) : '';
+    }
+    const s = sameStreetAddressSuggestion(c);
+    if (!s) return '';
+    const place = [s.city, s.state].filter(Boolean).join(', ') + (s.zip ? ' ' + s.zip : '');
+    return `
+      <div class="mailing-suggestion">
+        <span>Same street on their ${esc(fmtDate(s.closing))} loan: <strong>${esc(place)}</strong></span>
+        <button type="button" class="btn btn-edit" onclick="applyAddressReviewSuggestion('${id}')">Use this city and zip</button>
+      </div>`;
+  }
+
+  function addressReviewFocusHtml(c, queue) {
+    const category = addressReviewCategory(c);
+    const position = queue.findIndex(x => x.id === c.id) + 1;
+    const id = esc(c.id);
+    const year = closingYear(c);
+    const meta = [year ? `${year} ${prLabel(c.pr).toLowerCase()} loan` : 'No closing date', propertyLabel(c.proptype)].filter(Boolean).join(' · ');
+    const mapQuery = [c.address, c.city, c.state || 'ID', c.zip].filter(v => String(v || '').trim()).join(', ');
+    return `
+      <div class="addr-review-card">
+        <div class="addr-review-top">
+          <span class="badge badge-review">${esc(ADDRESS_REVIEW_LABELS[category] || 'Address review')}</span>
+          <span class="addr-review-pos">${position} of ${queue.length}</span>
+        </div>
+        <div class="addr-review-name">${esc(householdRecipient(c))}</div>
+        <div class="addr-review-meta">${esc(meta)}</div>
+        <div class="addr-review-current">Property on file: <strong>${esc(fullAddress(c)) || 'no address'}</strong></div>
+        ${addressReviewSuggestionHtml(c, category)}
+        ${addressReviewFieldsHtml(c, category)}
+        <div class="addr-review-actions">
+          <button class="btn btn-success" onclick="saveAddressReviewFix('${id}')">Save &amp; next</button>
+          <button class="btn btn-cancel" onclick="stepAddressReview(1)">Skip</button>
+          <button class="btn btn-cancel" onclick="stepAddressReview(-1)">Previous</button>
+          <button class="btn btn-cancel" onclick="markAddressCantFix('${id}')">Can't fix</button>
+          <button class="btn btn-cancel" onclick="openClientDrawer('${id}', false)">Open record</button>
+          ${mapQuery ? `<a class="addr-review-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}" target="_blank" rel="noopener">Look up on map ↗</a>` : ''}
+        </div>
+      </div>`;
+  }
+
+  function renderAddressReviewPage() {
+    const view = document.getElementById('addressReviewView');
+    if (!view || view.hidden) return;
+
+    document.getElementById('addrReviewFilterButtons').innerHTML = ADDRESS_REVIEW_FILTERS.map(f => {
+      const n = addressReviewQueue(f.key).length;
+      return `
+        <button class="year-filter-btn${addressReviewFilter === f.key ? ' active' : ''}"
+          onclick="setAddressReviewFilter('${f.key}')" aria-pressed="${addressReviewFilter === f.key}">
+          ${esc(f.label)} <span class="filter-count">${n}</span>
+        </button>`;
+    }).join('');
+
+    document.getElementById('addr-review-remaining').textContent = addressReviewQueue('all').length;
+    document.getElementById('addr-review-fixed').textContent = addressReviewSession.fixed;
+    document.getElementById('addr-review-cantfix').textContent = addressReviewQueue('cant_fix').length;
+
+    const stale = clients.filter(hasStaleReviewFlag).length;
+    document.getElementById('addrReviewNotice').innerHTML = stale ? `
+      <div class="addr-review-notice">
+        <span>${stale} ${stale === 1 ? 'record still carries' : 'records still carry'} an old "needs review" flag even though the address is now complete. ${stale === 1 ? 'It is' : 'They are'} not in this list.</span>
+        <button class="btn btn-edit" onclick="clearStaleReviewFlags()">Clear old flags</button>
+      </div>` : '';
+
+    const queue = addressReviewQueue();
+    const cantFixView = addressReviewFilter === 'cant_fix';
+    const focus = document.getElementById('addrReviewFocus');
+    const list = document.getElementById('addrReviewList');
+
+    if (!queue.length) {
+      const session = addressReviewSession.fixed || addressReviewSession.cantFix
+        ? `Fixed ${addressReviewSession.fixed} and marked ${addressReviewSession.cantFix} can't fix this session.`
+        : '';
+      focus.innerHTML = `
+        <div class="addr-review-done">
+          <strong>${cantFixView ? 'Nothing marked can\'t fix.' : 'All caught up.'}</strong>
+          <span>${cantFixView ? 'Records you mark can\'t fix show up here so you can revisit them.' : 'Every address in this group is complete. ' + session}</span>
+        </div>`;
+      list.innerHTML = '';
+      return;
+    }
+
+    if (cantFixView) {
+      focus.innerHTML = '';
+    } else {
+      const current = queue.find(c => c.id === addressReviewFocusId) || queue[0];
+      addressReviewFocusId = current.id;
+      focus.innerHTML = addressReviewFocusHtml(current, queue);
+    }
+
+    list.innerHTML = queue.map(c => {
+      const id = esc(c.id);
+      const detail = cantFixView
+        ? (c.addressReviewNote ? `Can't fix: ${esc(c.addressReviewNote)}` : "Marked can't fix")
+        : esc(ADDRESS_REVIEW_LABELS[addressReviewCategory(c)] || '');
+      const action = cantFixView
+        ? `<button class="btn btn-edit" onclick="event.stopPropagation(); resetAddressReview('${id}')">Put back</button>`
+        : '';
+      const year = closingYear(c);
+      return `
+        <div class="addr-review-item${c.id === addressReviewFocusId && !cantFixView ? ' active' : ''}" role="button" tabindex="0"
+          onclick="${cantFixView ? `openClientDrawer('${id}', false)` : `focusAddressReview('${id}')`}">
+          <div>
+            <div class="primary">${esc(householdRecipient(c))}${year ? ` <span class="sub">· ${esc(year)}</span>` : ''}</div>
+            <div class="sub">${esc(String(c.address || '').trim() || 'No street on file')} · ${detail}</div>
+          </div>
+          ${action}
+        </div>`;
+    }).join('');
   }
 
   function openMailMergePage() {
@@ -3905,39 +4311,12 @@
       </button>`).join('');
 
     const { rows } = getMailMergeRecords();
-    const reviewRecords = getAddressReviewRecords();
     document.getElementById('mail-summary-count').textContent = rows.length;
-    document.getElementById('mail-summary-missing').textContent = reviewRecords.length;
-    document.getElementById('mail-review-card').classList.toggle('active', mailReviewOnly);
+    document.getElementById('mail-summary-missing').textContent = addressReviewQueue('all').length;
 
     const body = document.getElementById('mailMergeBody');
     const empty = document.getElementById('mailMergeEmptyState');
     body.innerHTML = '';
-
-    if (mailReviewOnly) {
-      empty.style.display = reviewRecords.length ? 'none' : 'block';
-      empty.querySelector('p').textContent = 'No records need address review in this scope. Nicely done.';
-      reviewRecords.forEach(c => {
-        const missingParts = ['city','state','zip'].filter(k => !String(c[k] || '').trim());
-        const need = c.addressEnrichmentStatus === 'needs_review' && !missingParts.length
-          ? 'County match was ambiguous'
-          : (missingParts.length ? 'Missing ' + missingParts.join(', ')
-            : (needsMailingAddress(c) ? 'Needs owner mailing address (2nd home / investment)' : 'No mailing address'));
-        const suggestion = suggestedMailingAddress(c);
-        const tr = document.createElement('tr');
-        tr.className = 'clickable-row';
-        tr.tabIndex = 0;
-        tr.addEventListener('click', () => openClientDrawer(c.id, false));
-        tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openClientDrawer(c.id, false); } });
-        tr.innerHTML = `
-          <td><div class="primary">${esc(householdRecipient(c))}</div></td>
-          <td>${esc(String(c.address || '').trim()) || '<span class="sub">— no street —</span>'}</td>
-          <td><span class="sub">${esc(need)}</span>${suggestion ? mailingSuggestionHtml(suggestion, `event.stopPropagation(); applySuggestedMailingAddress('${esc(c.id)}')`) : ''}</td>
-          <td>${addressEnrichmentBadge(c) || '<span class="badge badge-review">Review</span>'}</td>`;
-        body.appendChild(tr);
-      });
-      return;
-    }
 
     empty.style.display = rows.length ? 'none' : 'block';
     empty.querySelector('p').textContent = 'No mailable records match the current filters.';
@@ -4597,6 +4976,10 @@
     if (birthdayViewEl && !birthdayViewEl.hidden) {
       closeBirthdayPage();
     }
+    const addressReviewViewEl = document.getElementById('addressReviewView');
+    if (addressReviewViewEl && !addressReviewViewEl.hidden) {
+      closeAddressReviewPage();
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -4974,6 +5357,7 @@
         await db.ref(CLIENTS_PATH + '/' + editingId).set({
           ...existing,
           ...data,
+          ...reviewFlagPatch({ ...existing, ...data }),
           id: editingId,
           createdAt: existing.createdAt || now,
           updatedAt: now
@@ -5522,6 +5906,7 @@
       updates[CLIENTS_PATH + '/' + id] = {
         ...existing,
         ...rawClient,
+        ...reviewFlagPatch({ ...existing, ...rawClient }),
         id,
         createdAt: rawClient.createdAt || existing.createdAt || now,
         updatedAt: now,

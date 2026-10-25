@@ -110,7 +110,8 @@ Ownership verification (written by the backend)
 - `ownershipStatus` — `verified` | `unverified` | `trust` | `entity` | `nlor`
 - `ownershipOwnerName` — matched legal owner name
 - `ownershipCheckedAt` — epoch ms of last lookup
-- `addressEnrichmentStatus` — `enriched` | `needs_review`
+- `addressEnrichmentStatus` — `enriched` | `needs_review` | `resolved` (a needs_review flag cleared once the address was completed)
+- `addressReviewDismissed`, `addressReviewNote`, `addressReviewedAt`: Address Review worklist state (marked can't fix with an optional reason; when it was last reviewed)
 - `addressEnrichmentLastAttemptAt` — epoch ms of last enrichment attempt
 
 Indexed on: `closing`, `borrower1last`, `referral`, `program` (see `firebase-rules.json`).

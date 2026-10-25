@@ -12,8 +12,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 
 ### P1
 - [ ] **Confirm the catch-up finishes.** Run budget raised to 25 minutes on 2026-10-24. Check the due count (270 that day) drops each night and reaches zero; close this once it does.
-- [ ] **Build a first-class Address Review worklist.** 241 current borrowers are flagged `needs_review` as of 2026-10-23. Add category counts, previous/next navigation, one-click suggestions, resolution tracking, and a clear completed state so the queue can be worked down in one pass.
-- [ ] **Fill mailing addresses on non-primary records.** 48 second home / investment records show "Needs mailing address". 9 have a one-click suggestion (Mailers > address review, or the drawer); the other 39 need the address entered by hand.
+- [ ] **Work down the Address Review queue.** About 216 records as of 2026-10-24: roughly 189 missing city and zip, 25 needing a mailing address (second home / investment), 2 missing a street. Data entry in Address Review; a few have one-click fills. Also click **Clear old flags** once to retire the 151 leftover review flags.
 - [ ] **Build a Today's Work page.** Combine active Refi Watch records, birthdays, loan anniversaries, address reviews, ownership follow-ups, and manually scheduled actions into one prioritized work queue.
 - [ ] **Add outreach action tracking.** Give birthday and anniversary outreach the same Contacted, Snooze, Dismiss, and Reset workflow available in Refi Watch.
 - [ ] **Add structured client follow-ups.** Store `nextActionAt`, `nextActionType`, `lastContactedAt`, and an outcome alongside the existing dated client notes, and feed due actions into Today's Work.

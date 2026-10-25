@@ -192,6 +192,9 @@ Backstops independent of Cloud Monitoring:
 4. Validate with `npm run try -- "<address>"`.
 5. Add a test in `functions/test/`, run `npm test`, then deploy.
 
+### Work the address review queue
+Open **Address Review** from the menu, or click **Needs Address Review** on the Mailers page. Records are grouped by problem (missing city and zip, needs mailing address, missing street) and shown one at a time: type the fix and press **Save & next** (or Enter), take a one-click suggestion when one exists, **Skip**, or **Can't fix** with an optional reason (listed under Can't fix, where **Put back** returns it to the queue). A record leaves the queue as soon as its address is complete. The county probe's old `needs_review` flag no longer counts once an address is complete; saving clears it, and the page offers a one-time **Clear old flags** button for leftovers.
+
 ### Restore from a backup
 A restore overwrites live data, so work from a fresh safety copy:
 1. Firebase console > Realtime Database > Backups > **Start manual backup**, so the current state can be recovered if the restore goes wrong.
