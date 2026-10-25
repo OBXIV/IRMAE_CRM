@@ -6115,6 +6115,12 @@
     }
   ];
   const RELEASE_SEEN_KEY = 'irmaeLastSeenRelease';
+
+  // The browser copy is per signed-in user too, so people sharing a browser
+  // never clear each other's dot.
+  function releaseSeenKey() {
+    return currentUser && currentUser.uid ? `${RELEASE_SEEN_KEY}:${currentUser.uid}` : RELEASE_SEEN_KEY;
+  }
   let remoteSeenReleaseId = '';
   let releaseSeenRef = null;
 
@@ -6136,7 +6142,7 @@
   // The more recent of this browser's copy and the synced one.
   function lastSeenReleaseId() {
     let local = '';
-    try { local = localStorage.getItem(RELEASE_SEEN_KEY) || ''; } catch {}
+    try { local = localStorage.getItem(releaseSeenKey()) || ''; } catch {}
     const position = id => {
       const i = RELEASE_NOTES.findIndex(r => r.id === id);
       return i === -1 ? Infinity : i;
@@ -6169,7 +6175,7 @@
     }).join('');
     document.getElementById('releaseNotesOverlay').classList.add('open');
     const latest = RELEASE_NOTES[0].id;
-    try { localStorage.setItem(RELEASE_SEEN_KEY, latest); } catch {}
+    try { localStorage.setItem(releaseSeenKey(), latest); } catch {}
     remoteSeenReleaseId = latest;
     if (db && currentUser && currentUser.uid) {
       db.ref(`userPrefs/${currentUser.uid}`).update({ lastSeenRelease: latest, lastSeenReleaseAt: Date.now() }).catch(() => {});
