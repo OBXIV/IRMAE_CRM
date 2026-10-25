@@ -291,6 +291,46 @@
     .menu-item:hover { background: rgba(56, 189, 248, 0.12); color: #bae6fd; }
     .menu-item.danger { color: #fca5a5; }
     .menu-item.danger:hover { background: rgba(239, 68, 68, 0.14); color: #fecaca; }
+    .menu-trigger { position: relative; }
+    .notify-dot {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 0 2px var(--bg);
+    }
+    .menu-item .notify-dot:not([hidden]) {
+      position: static;
+      display: inline-block;
+      margin-left: 8px;
+      vertical-align: middle;
+      box-shadow: none;
+    }
+    .release-intro { color: var(--muted); font-size: 0.88rem; margin-bottom: 14px; }
+    .release-list { display: grid; gap: 12px; }
+    .release {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(8, 13, 23, 0.48);
+    }
+    .release.is-new { border-color: rgba(239, 68, 68, 0.5); }
+    .release-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .release-title { color: var(--text); font-weight: 800; }
+    .release-new {
+      margin-left: 8px;
+      color: #fca5a5;
+      font-size: 0.68rem;
+      font-weight: 850;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+    .release-date { color: var(--muted); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
+    .release ul { margin: 8px 0 0 18px; color: #d7e3f2; font-size: 0.88rem; line-height: 1.5; }
+    .release li + li { margin-top: 5px; }
 
     /* Stats */
     .stats {
@@ -1497,8 +1537,9 @@
     <button class="btn btn-primary" onclick="openModal()">+ Add Client</button>
     <span id="currentUserEmail" style="font-size:0.82rem;color:#93a4b8;font-weight:600"></span>
     <div class="utility-menu">
-      <button class="btn menu-trigger" id="actionMenuButton" onclick="toggleActionMenu(event)" aria-label="Client menu" aria-expanded="false">☰</button>
+      <button class="btn menu-trigger" id="actionMenuButton" onclick="toggleActionMenu(event)" aria-label="Client menu" aria-expanded="false">☰<span class="notify-dot" id="menuNotifyDot" hidden></span></button>
       <div class="action-menu" id="actionMenu">
+        <button class="menu-item" onclick="openReleaseNotes()">What's new<span class="notify-dot" id="menuItemNotifyDot" hidden></span></button>
         <button class="menu-item" onclick="openMailMergePage()">Mailers / Mail Merge</button>
         <button class="menu-item" onclick="openAddressReviewPage()">Address Review</button>
         <button class="menu-item" onclick="openBirthdayPage()">Birthday Outreach</button>
@@ -1822,6 +1863,17 @@
 </div>
 
 <!-- Add / Edit Modal -->
+<div class="modal-overlay" id="releaseNotesOverlay" onclick="if (event.target === this) closeReleaseNotes()">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="releaseNotesTitle">
+    <h2 id="releaseNotesTitle">What's new</h2>
+    <p class="release-intro">Recent improvements to the CRM, newest first.</p>
+    <div class="release-list" id="releaseNotesList"></div>
+    <div class="modal-actions">
+      <button class="btn btn-success" onclick="closeReleaseNotes()">Got it</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <h2 id="modalTitle">Add New Client</h2>
@@ -5991,6 +6043,105 @@
     document.getElementById('actionMenuButton').setAttribute('aria-expanded', 'false');
   }
 
+  // ── What's new ───────────────────────────────────────────
+  // Plain-English release notes for the people using the CRM. Add an entry at
+  // the top with every user-facing release; a new top id lights the menu dot.
+  const RELEASE_NOTES = [
+    {
+      id: '2026-10-24-whats-new',
+      date: '2026-10-24',
+      title: "What's new",
+      items: [
+        'A red dot on the ☰ menu now means something new was added. Open What\'s new to see what changed; the dot goes away once you have looked.'
+      ]
+    },
+    {
+      id: '2026-10-24-address-review',
+      date: '2026-10-24',
+      title: 'Address Review',
+      items: [
+        'New Address Review page (☰ menu, or the Needs Address Review box on Mailers) lists every client whose address is incomplete, grouped by what is missing.',
+        'Work through them one at a time: type the fix and press Save & next (or Enter). Skip and Previous move around; Can\'t fix sets one aside with a reason, and you can put it back later.',
+        'When the CRM already knows the answer, such as the same client\'s other loan on that street, one click fills it in.',
+        'Look up on map opens the address in Google Maps to find a missing city or zip.'
+      ]
+    },
+    {
+      id: '2026-10-24-behind-the-scenes',
+      date: '2026-10-24',
+      title: 'Behind the scenes',
+      items: [
+        'All client data is now backed up automatically every day.',
+        'The nightly check that confirms who owns each property is running again and is catching up on the weeks it missed.'
+      ]
+    },
+    {
+      id: '2026-10-22-notes-anniversaries',
+      date: '2026-10-22',
+      title: 'Client notes and loan anniversaries',
+      items: [
+        'Each client now has a Notes log in their details panel. Every note is stamped with the date, time, and who wrote it.',
+        'The Outreach page now has a Loan Anniversaries view next to Birthdays, showing whose loan closed in a given month and how many years ago.'
+      ]
+    },
+    {
+      id: '2026-10-21-refi-birthdays-import',
+      date: '2026-10-21',
+      title: 'Refi Watch to-do list, birthdays, easier imports',
+      items: [
+        'Refi Watch is now a to-do list: mark a client Contacted, Snooze them for 30 or 90 days, or Dismiss them. The Refi Watch number on the dashboard counts only the ones still to work.',
+        'Birthday Outreach (☰ menu) lists clients with birthdays in a month, with the age they are turning and their phone and email.',
+        'Spreadsheet imports now understand columns like "Borrower First Name" and couples written as "Michael & Shayla", and explain what is wrong if a file cannot be read.'
+      ]
+    },
+    {
+      id: '2026-10-20-phone-mailing',
+      date: '2026-10-20',
+      title: 'Phone layout and mailing addresses',
+      items: [
+        'The CRM works much better on a phone: clients show right away, filters fold behind a Filters button, and the screen no longer zooms in when you tap a field.',
+        'Second homes and rentals have a Mailing Address, so mailers go to the owner instead of the tenant. A one-click suggestion fills in the owner\'s home address when the CRM has it.'
+      ]
+    }
+  ];
+  const RELEASE_SEEN_KEY = 'irmaeLastSeenRelease';
+
+  function lastSeenReleaseId() {
+    try { return localStorage.getItem(RELEASE_SEEN_KEY) || ''; } catch { return ''; }
+  }
+
+  function renderReleaseDot() {
+    const unseen = RELEASE_NOTES.length > 0 && lastSeenReleaseId() !== RELEASE_NOTES[0].id;
+    ['menuNotifyDot', 'menuItemNotifyDot'].forEach(id => {
+      const dot = document.getElementById(id);
+      if (dot) dot.hidden = !unseen;
+    });
+    document.getElementById('actionMenuButton')?.setAttribute('aria-label', unseen ? 'Client menu, new features added' : 'Client menu');
+  }
+
+  function openReleaseNotes() {
+    closeActionMenu();
+    const seenIndex = RELEASE_NOTES.findIndex(r => r.id === lastSeenReleaseId());
+    document.getElementById('releaseNotesList').innerHTML = RELEASE_NOTES.map((r, i) => {
+      const isNew = seenIndex === -1 || i < seenIndex;
+      return `
+        <div class="release${isNew ? ' is-new' : ''}">
+          <div class="release-head">
+            <div class="release-title">${esc(r.title)}${isNew ? '<span class="release-new">New</span>' : ''}</div>
+            <div class="release-date">${esc(fmtDate(r.date))}</div>
+          </div>
+          <ul>${r.items.map(item => `<li>${esc(item)}</li>`).join('')}</ul>
+        </div>`;
+    }).join('');
+    document.getElementById('releaseNotesOverlay').classList.add('open');
+    try { localStorage.setItem(RELEASE_SEEN_KEY, RELEASE_NOTES[0].id); } catch {}
+    renderReleaseDot();
+  }
+
+  function closeReleaseNotes() {
+    document.getElementById('releaseNotesOverlay').classList.remove('open');
+  }
+
   function importClientsFromMenu() {
     closeActionMenu();
     document.getElementById('importFile').click();
@@ -6071,6 +6222,7 @@
   initShortSelect('f-proptype');
   initShortSelect('f-pr');
   document.getElementById('f-proptype').addEventListener('change', () => syncMailingSection('f-proptype', 'mailingAddressSection'));
+  renderReleaseDot();
 
   // ── Add Borrower 3 / 4 ───────────────────────────────────
   let borrowerCount = 2;
