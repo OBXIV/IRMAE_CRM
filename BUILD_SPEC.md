@@ -46,6 +46,7 @@ GitHub Pages (static)
 Firebase project: iramecrm
   Authentication        Google provider only, 2 authorized emails
   Realtime Database     /clients/{clientId}, /systemHealth/ownership
+  RTDB Backups          daily data + rules, gzipped JSON, bucket iramecrm-default-rtdb-backups
   Cloud Functions (Node 22, us-central1)
      nightlyOwnershipCheck   scheduled 03:15 America/Boise
      runOwnershipCheckNow     manual HTTPS trigger, token-protected
@@ -192,6 +193,7 @@ If a county returns an owner on zero of at least `ALERT_MIN_SAMPLE` (5) routed l
 | Front end | `index.html`, `rates.json`, `assets/` | Push to default branch -> GitHub Pages |
 | Functions | `functions/` | `firebase deploy --only functions` |
 | DB rules | `firebase-rules.json` | Publish in Firebase Console (manual) |
+| DB backups | Firebase-managed | Daily automatic backups, configured in Firebase console > Realtime Database > Backups |
 | Rates | `scripts/update_rates.py` | GitHub Action (daily) |
 
 Function npm scripts (`functions/package.json`): `test`, `try`, `serve` (emulator), `deploy`, `logs`.

@@ -11,13 +11,19 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 ## Open
 
 ### P1
-- [ ] **Watch the ownership catch-up.** Every record came due during the outage. A 7 minute run covers about 68 county lookups, so rechecking everything takes roughly 4 to 5 more nights. Runs that hit the budget are expected and still record a healthy heartbeat.
-- [ ] **Work down address needs-review queue.** 252 records flagged `needs_review`, flat since at least 2026-10-15. Consider a review-queue view in the app so they can be cleared in one pass.
+- [ ] **Speed up the ownership catch-up.** 270 records still due after the outage. The no-owner retry backoff (shipped Oct 23) works, but county lookups ran slow on Oct 24: about 16 seconds each, so only 26 fit in the 7 minute budget. Raise the function timeout to 1800s and `RUN_TIME_BUDGET_MS` to about 25 minutes (still inside the free tier), deploy, and confirm the due count drops each night.
+- [ ] **Build a first-class Address Review worklist.** 241 current borrowers are flagged `needs_review` as of 2026-10-23. Add category counts, previous/next navigation, one-click suggestions, resolution tracking, and a clear completed state so the queue can be worked down in one pass.
 - [ ] **Fill mailing addresses on non-primary records.** 48 second home / investment records show "Needs mailing address". 9 have a one-click suggestion (Mailers > address review, or the drawer); the other 39 need the address entered by hand.
+- [ ] **Build a Today's Work page.** Combine active Refi Watch records, birthdays, loan anniversaries, address reviews, ownership follow-ups, and manually scheduled actions into one prioritized work queue.
+- [ ] **Add outreach action tracking.** Give birthday and anniversary outreach the same Contacted, Snooze, Dismiss, and Reset workflow available in Refi Watch.
+- [ ] **Add structured client follow-ups.** Store `nextActionAt`, `nextActionType`, `lastContactedAt`, and an outcome alongside the existing dated client notes, and feed due actions into Today's Work.
+- [ ] **Build a data-quality queue.** Surface potential duplicates, missing mailing addresses, incomplete birthdays, malformed phone/email values, and non-standard property types for review and correction.
 
 - [ ] **Check mobile on a real iPhone.** Emulator testing done; confirm Safari specifics (notch, collapsing toolbar, form Save bar) on her phone.
 
 ### P2
+- [ ] **Alert on missing backups.** Add a Cloud Monitoring alert on the existing email channel when no new file lands in `iramecrm-default-rtdb-backups` for 36 hours, so a stopped backup cannot go unnoticed the way the Sep 13 outage did.
+- [ ] **Quarterly restore drill.** Download the latest backup, unzip it, and confirm the client count matches the app (steps in DOCUMENTATION.md, Restore from a backup).
 - [ ] Normalize non-standard property type values: `Inv` (2 records, treated as investment), plus one `P` and one `R` that look like loan type entered in the wrong field.
 - [ ] Optional instant alerts: set `OWNERSHIP_ALERT_WEBHOOK_URL` and add it to the function's secrets.
 - [ ] `functions/src/config.js` `ZIP_COUNTY` has duplicate keys (`83702` twice, `83607` three times). Harmless, but clean up.

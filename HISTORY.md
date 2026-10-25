@@ -99,6 +99,7 @@ Newest first. Commit hashes are in git; this table is the readable version.
 
 | Date | Change |
 |---|---|
+| 2026-10-24 | Daily database backups: Firebase-managed backups of all data and the security rules to the Cloud Storage bucket iramecrm-default-rtdb-backups, gzipped, kept indefinitely (30-day auto-delete deliberately off). First backup run by hand and completed (65 KB). Restore steps documented in DOCUMENTATION.md |
 | 2026-10-23 | Nightly ownership check stops retrying no-owner and no-match results every night; it waits 14 days instead. Those retries were growing by about a third of each night's lookups and would have used up the 7 minute budget, stalling the post-outage catch-up. Site errors still retry nightly |
 | 2026-10-22 | Cloud alerting stood up. Confirmed no Monitoring alert policy or notification channel existed (so breakage alerts never reached anyone). Created an email channel to mario@obliox.io and two enabled policies: provider breakage (log match on [ownership][ALERT]) and nightly-run-missing (no [ownership] run complete logged in 24h). DOCUMENTATION section 7 now documents the real setup |
 | 2026-10-22 | Stale-heartbeat check: the daily ownership snapshot reads /systemHealth/ownership.at on a live pull and exits non-zero with a loud warning when the nightly job's last run is older than 36h or missing. Closes the gap that hid the Sep 13 to Oct 19 outage, where only a failed run alerted, never a run that never happened |

@@ -137,6 +137,15 @@ Pulls live RTDB, computes dashboard-deduplicated counts, writes `scripts/ownersh
 
 This script also runs from a local scheduled task at 06:14 daily for a morning summary. It self-adds `/opt/homebrew/bin` and `/usr/local/bin` to PATH so non-login scheduled runs can find the firebase CLI, and surfaces a clear error on auth/CLI failure instead of failing silently.
 
+### Daily database backups
+- Firebase-managed automatic backups of the Realtime Database: all data plus the security rules, once a day, as gzipped JSON.
+- Stored in the Cloud Storage bucket `iramecrm-default-rtdb-backups` (project `iramecrm`). Each backup is two files: `<UTC time>_iramecrm-default-rtdb_data.json.gz` and `<UTC time>_iramecrm-default-rtdb_rules.json.gz`.
+- Kept indefinitely. The 30-day auto-delete option is off on purpose: the Sep 2026 outage went unnoticed for five weeks, and 30 days of history could be too short to recover from a slow problem. Storage is about 65 KB a day.
+- Firebase chooses the daily backup time; the console has no time setting.
+- Manage in Firebase console > Realtime Database > Backups: history, settings (gear), and **Start manual backup**.
+- Requires the Blaze (paid) plan. If billing lapses, backups stop along with Cloud Functions.
+- The app's **Export Clients** JSON download is still available as a second, manual backup.
+
 ---
 
 ## 7. Monitoring and Alerting
@@ -183,6 +192,17 @@ Backstops independent of Cloud Monitoring:
 4. Validate with `npm run try -- "<address>"`.
 5. Add a test in `functions/test/`, run `npm test`, then deploy.
 
+### Restore from a backup
+A restore overwrites live data, so work from a fresh safety copy:
+1. Firebase console > Realtime Database > Backups > **Start manual backup**, so the current state can be recovered if the restore goes wrong.
+2. Open the bucket link on the Backups tab, download the `..._data.json.gz` file from the date you need, and unzip it (`gunzip <file>`).
+3. Pick the scope:
+   - **Whole database:** Data tab > three-dot menu at the root > **Import JSON** and choose the unzipped file. This replaces everything.
+   - **All clients only:** extract the `clients` object from the file, then `firebase database:set /clients clients.json --project iramecrm`. This replaces every client but leaves `/systemHealth` alone.
+   - **One client:** copy that record from the file into `client.json`, then `firebase database:set /clients/<clientId> client.json --project iramecrm`.
+4. Rules are restored separately, only if they changed: paste the unzipped `..._rules.json` into the Rules tab and publish.
+5. Reload the CRM and spot-check counts against the daily ownership snapshot.
+
 ### Tune run behavior
 Edit `functions/src/config.js`: `REQUEST_DELAY_MS`, `REQUEST_TIMEOUT_MS`, `RECHECK_AFTER_DAYS`, `RETRY_UNRESOLVED_AFTER_DAYS`, `MAX_LOOKUPS_PER_RUN`, `RUN_TIME_BUDGET_MS`, `ALERT_MIN_SAMPLE`. Redeploy functions.
 
@@ -198,6 +218,7 @@ Edit `functions/src/config.js`: `REQUEST_DELAY_MS`, `REQUEST_TIMEOUT_MS`, `RECHE
 | One county shows `[ownership][ALERT]` | portal markup changed, provider broke | Probe with `npm run try`, update the provider's cheerio selectors, test, deploy |
 | All ownership deltas zero on a normal day | nightly run did not execute | Check function logs and Cloud Scheduler |
 | Sign-in blocked | domain not authorized or email not in rules | Add domain in Auth settings / email in rules |
+| No new backup on the Backups tab for over a day | billing lapsed (backups need Blaze) or the backup bucket was removed | Check billing; on the Backups tab confirm Daily is enabled and the bucket exists, then **Start manual backup** |
 | Records not enriching | no street, or city/zip present but unsupported county | Expected; only street-only Idaho records take the two-signal probe |
 
 ---
