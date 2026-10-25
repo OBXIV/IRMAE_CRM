@@ -99,6 +99,7 @@ Newest first. Commit hashes are in git; this table is the readable version.
 
 | Date | Change |
 |---|---|
+| 2026-10-24 | Release notes page: a See full release notes link at the bottom of What's new opens every release since May 2026 (20 releases, 73 changes), grouped by month and filterable as New, Improved, Fixed, or Behind the scenes. RELEASE_NOTES entries now carry a short summary (What's new, drives the dot) and typed details (full page); older releases have details only. Also replaced client names used as examples in a code comment and an Oct 21 note with made-up names |
 | 2026-10-24 | What's new browser fallback copy is now kept per signed-in user, so two people sharing a browser never clear each other's dot |
 | 2026-10-24 | What's new seen state syncs across devices: saved per signed-in user under /userPrefs/{uid} and watched live, so reading the notes on one device clears the dot everywhere. Database rules add /userPrefs/{uid}, readable and writable only by that user (still limited to the two approved emails) and only for the two What's new fields. The browser copy remains as a fallback |
 | 2026-10-24 | What's new: a red dot on the ☰ menu (and next to the new What's new menu item) whenever a release has not been viewed on that device. What's new lists plain-English release notes, newest first, marking the ones that are new since the last visit; opening it clears the dot. Seeded with the Oct 20 to 24 releases. Notes live in RELEASE_NOTES in index.html and get an entry with every user-facing release |

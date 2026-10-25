@@ -1,6 +1,6 @@
 # IRMAE CRM Backlog
 
-Open work only. When an item ships, remove it here and add a row to the change log in [HISTORY.md](HISTORY.md), in the same commit as the change. If users will notice the change, also add a What's new entry (`RELEASE_NOTES` in index.html; see DOCUMENTATION.md).
+Open work only. When an item ships, remove it here and add a row to the change log in [HISTORY.md](HISTORY.md), in the same commit as the change. Also add a release notes entry (`RELEASE_NOTES` in index.html: a short summary if users will notice it, plus typed details; see DOCUMENTATION.md).
 
 This repo is public. Keep client names, record IDs, and any client data out of this file and out of commit messages.
 

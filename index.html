@@ -331,6 +331,32 @@
     .release-date { color: var(--muted); font-size: 0.78rem; font-weight: 700; white-space: nowrap; }
     .release ul { margin: 8px 0 0 18px; color: #d7e3f2; font-size: 0.88rem; line-height: 1.5; }
     .release li + li { margin-top: 5px; }
+    .release-month {
+      margin: 10px 0 -2px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+    .release ul.release-details { margin: 10px 0 0; padding: 0; list-style: none; }
+    .release-details li { display: flex; align-items: flex-start; gap: 10px; }
+    .release-tag {
+      flex: 0 0 auto;
+      min-width: 74px;
+      margin-top: 2px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.66rem;
+      font-weight: 850;
+      letter-spacing: 0.4px;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    .release-tag-new { background: rgba(34, 197, 94, 0.15); color: #86efac; }
+    .release-tag-improved { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; }
+    .release-tag-fixed { background: rgba(245, 158, 11, 0.15); color: #fcd34d; }
+    .release-tag-behind { background: rgba(148, 163, 184, 0.16); color: #cbd5e1; }
 
     /* Stats */
     .stats {
@@ -1392,6 +1418,8 @@
         border-top: 1px solid var(--line);
       }
       .modal-actions .btn { flex: 1; }
+      .release-details li { flex-direction: column; gap: 4px; }
+      .release-tag { align-self: flex-start; min-width: 0; }
       .filter-panel,
       .table-footer { flex-direction: column; align-items: stretch; }
       .scope-label { text-align: left; min-width: 0; }
@@ -1846,6 +1874,40 @@
     <div id="addrReviewFocus"></div>
     <div class="addr-review-list" id="addrReviewList"></div>
   </section>
+
+  <section class="page-view mailmerge-page" id="releaseNotesView" hidden>
+    <div class="page-head">
+      <div>
+        <div class="page-kicker">Release notes</div>
+        <h2>Everything that has changed</h2>
+      </div>
+      <button class="btn btn-cancel" onclick="closeReleaseNotesPage()">Back to Dashboard</button>
+    </div>
+
+    <div class="mailmerge-controls">
+      <div class="filter-group">
+        <div class="filter-label">Show</div>
+        <div class="year-filter-buttons" id="releaseNotesFilterButtons"></div>
+      </div>
+    </div>
+
+    <div class="mailmerge-summary-grid">
+      <div class="partner-summary">
+        <div class="num" id="release-summary-releases">0</div>
+        <div class="lbl">Releases</div>
+      </div>
+      <div class="partner-summary">
+        <div class="num" id="release-summary-changes">0</div>
+        <div class="lbl">Changes</div>
+      </div>
+      <div class="partner-summary">
+        <div class="num" id="release-summary-since">—</div>
+        <div class="lbl">Online since</div>
+      </div>
+    </div>
+
+    <div class="release-list" id="releaseNotesTimeline"></div>
+  </section>
 </div>
 
 <!-- Client Detail Drawer -->
@@ -1869,6 +1931,7 @@
     <p class="release-intro">Recent improvements to the CRM, newest first.</p>
     <div class="release-list" id="releaseNotesList"></div>
     <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="openReleaseNotesPage()">See full release notes</button>
       <button class="btn btn-success" onclick="closeReleaseNotes()">Got it</button>
     </div>
   </div>
@@ -5034,6 +5097,10 @@
     if (addressReviewViewEl && !addressReviewViewEl.hidden) {
       closeAddressReviewPage();
     }
+    const releaseNotesViewEl = document.getElementById('releaseNotesView');
+    if (releaseNotesViewEl && !releaseNotesViewEl.hidden) {
+      closeReleaseNotesPage();
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -5735,7 +5802,7 @@
       if (full) borrowers.push(...borrowersFromCells(full, ''));
     });
 
-    // A joint cell ("Michael & Shayla" + "White") yields several people; the
+    // A joint cell ("Ann & Bo" + "Finch") yields several people; the
     // first fills this slot and the rest go to the next empty borrower slots.
     const jointExtras = [];
     BORROWER_FIRST_ALIASES.forEach((aliases, index) => {
@@ -6045,75 +6112,265 @@
     document.getElementById('actionMenuButton').setAttribute('aria-expanded', 'false');
   }
 
-  // ── What's new ───────────────────────────────────────────
-  // Plain-English release notes for the people using the CRM. Add an entry at
-  // the top with every user-facing release; a new top id lights the menu dot.
+  // ── What's new and release notes ─────────────────────────
+  // One entry per release, newest first. `summary` holds the plain-English
+  // bullets for the What's new popup, and only entries with a summary light the
+  // menu dot. `details` holds typed bullets for the full Release notes page.
+  // Add an entry with every user-facing release (see DOCUMENTATION.md).
+  const RELEASE_TYPES = {
+    new: 'New',
+    improved: 'Improved',
+    fixed: 'Fixed',
+    behind: 'Behind the scenes'
+  };
   const RELEASE_NOTES = [
+    {
+      id: '2026-10-24-release-notes',
+      date: '2026-10-24',
+      title: 'Full release notes',
+      summary: [
+        'A See full release notes link at the bottom of What\'s new opens every change since the CRM started, with more detail and filters for new features, improvements, fixes, and behind-the-scenes work.'
+      ],
+      details: [
+        ['new', 'Release notes page: every change since the CRM went online in May 2026, newest first and grouped by month, each marked New, Improved, Fixed, or Behind the scenes.'],
+        ['new', 'Filters show one kind of change at a time, with counts.'],
+        ['new', 'Open it from See full release notes at the bottom of What\'s new.']
+      ]
+    },
     {
       id: '2026-10-24-whats-new-sync',
       date: '2026-10-24',
       title: 'What\'s new on every device',
-      items: [
+      summary: [
         'Once you read What\'s new on your phone or computer, the red dot clears everywhere you are signed in.'
+      ],
+      details: [
+        ['improved', 'Reading What\'s new on one device clears the red dot on every device where you are signed in, right away.'],
+        ['improved', 'Each person has their own dot: one person reading the notes never clears the other\'s, even on a shared computer.'],
+        ['behind', 'The database gained a small private settings area for each person, used only to remember which notes they have read.']
       ]
     },
     {
       id: '2026-10-24-whats-new',
       date: '2026-10-24',
       title: "What's new",
-      items: [
+      summary: [
         'A red dot on the ☰ menu now means something new was added. Open What\'s new to see what changed; the dot goes away once you have looked.'
+      ],
+      details: [
+        ['new', 'A red dot on the ☰ menu appears whenever there is a release you have not looked at yet.'],
+        ['new', 'What\'s new, at the top of the menu, lists recent releases in plain English, newest first, with the unseen ones marked New.'],
+        ['new', 'Got it closes the list, and the dot stays off until the next release.']
       ]
     },
     {
       id: '2026-10-24-address-review',
       date: '2026-10-24',
       title: 'Address Review',
-      items: [
+      summary: [
         'New Address Review page (☰ menu, or the Needs Address Review box on Mailers) lists every client whose address is incomplete, grouped by what is missing.',
         'Work through them one at a time: type the fix and press Save & next (or Enter). Skip and Previous move around; Can\'t fix sets one aside with a reason, and you can put it back later.',
         'When the CRM already knows the answer, such as the same client\'s other loan on that street, one click fills it in.',
         'Look up on map opens the address in Google Maps to find a missing city or zip.'
+      ],
+      details: [
+        ['new', 'Address Review page groups incomplete addresses by problem: missing city and zip, needs a mailing address, or missing street, with a count for each.'],
+        ['new', 'One record at a time with the fields right on the card: Save & next (or Enter), Skip, Previous, and Open record.'],
+        ['new', 'Can\'t fix sets a record aside with an optional reason. The Can\'t fix tab lists them, and Put back returns one to the queue.'],
+        ['new', 'One-click fills when the CRM already knows the answer: city and zip from the same client\'s other loan on that street, or a mailing address from their home loan.'],
+        ['new', 'Look up on map opens Google Maps for the address. The page shows how many are left and how many you fixed, and says All caught up when a group is empty.'],
+        ['fixed', '151 records were still flagged for address review even though their addresses had already been completed. They no longer count, saving a complete address now clears the flag automatically, and a Clear old flags button removes the leftovers.'],
+        ['improved', 'The Needs Address Review box on the Mailers page now opens this page.']
       ]
     },
     {
       id: '2026-10-24-behind-the-scenes',
       date: '2026-10-24',
       title: 'Behind the scenes',
-      items: [
+      summary: [
         'All client data is now backed up automatically every day.',
         'The nightly check that confirms who owns each property is running again and is catching up on the weeks it missed.'
+      ],
+      details: [
+        ['behind', 'Automatic daily backups of all client data and the database rules, kept indefinitely. A first backup was run and confirmed.'],
+        ['behind', 'The nightly ownership check can now run up to 25 minutes instead of 7, so it catches up faster on the records it missed.']
+      ]
+    },
+    {
+      id: '2026-10-23-nightly-retries',
+      date: '2026-10-23',
+      title: 'Smarter nightly ownership checks',
+      details: [
+        ['behind', 'When a county has no owner on file for an address, the nightly check now waits two weeks before trying that address again instead of retrying every night, leaving its time for the records that are actually due.']
       ]
     },
     {
       id: '2026-10-22-notes-anniversaries',
       date: '2026-10-22',
       title: 'Client notes and loan anniversaries',
-      items: [
+      summary: [
         'Each client now has a Notes log in their details panel. Every note is stamped with the date, time, and who wrote it.',
         'The Outreach page now has a Loan Anniversaries view next to Birthdays, showing whose loan closed in a given month and how many years ago.'
+      ],
+      details: [
+        ['new', 'Notes log in each client\'s details panel: Add note stamps the date, time, and who wrote it, and notes can be deleted.'],
+        ['new', 'The Outreach page switches between Birthdays and Loan Anniversaries. Anniversaries list clients whose loan closed in the selected month and how many years ago.'],
+        ['behind', 'Email alerts now go out if a county website stops returning owners or if the nightly check does not run for a day.'],
+        ['behind', 'The morning summary report warns when the nightly check has not run.']
       ]
     },
     {
       id: '2026-10-21-refi-birthdays-import',
       date: '2026-10-21',
       title: 'Refi Watch to-do list, birthdays, easier imports',
-      items: [
+      summary: [
         'Refi Watch is now a to-do list: mark a client Contacted, Snooze them for 30 or 90 days, or Dismiss them. The Refi Watch number on the dashboard counts only the ones still to work.',
         'Birthday Outreach (☰ menu) lists clients with birthdays in a month, with the age they are turning and their phone and email.',
-        'Spreadsheet imports now understand columns like "Borrower First Name" and couples written as "Michael & Shayla", and explain what is wrong if a file cannot be read.'
+        'Spreadsheet imports now understand columns like "Borrower First Name" and couples written in one cell, like "Ann & Bo", and explain what is wrong if a file cannot be read.'
+      ],
+      details: [
+        ['improved', 'Refi Watch is a worklist: Contacted (comes back for a follow-up later), Snooze 30 or 90 days, Dismiss, or Reset, with views for to work, snoozed, dismissed, and all flagged. The dashboard number counts only the ones still to work.'],
+        ['new', 'Birthday Outreach lists clients with birthdays in a chosen month (the current month by default) with the age they turn, phone and email, and property, skipping deceased borrowers and repeat entries.'],
+        ['fixed', 'Spreadsheet imports failed when columns were named like "Borrower First Name". Those names now work, along with co-borrower and borrower 3 and 4 versions.'],
+        ['fixed', 'Couples written in one cell ("Ann & Bo" with one last name, or "Cara" with "Lark & Eli Fox") now import as two borrowers instead of dropping the second person.'],
+        ['improved', 'Import errors now say what is wrong, such as a missing header row or missing name columns.'],
+        ['behind', '43 loans closing in 2026 were imported.'],
+        ['fixed', 'The nightly ownership check had quietly stopped on Sep 13, when the Google Cloud free trial behind it ended. Billing was upgraded and it runs again, now finishing cleanly even on big nights.'],
+        ['behind', 'The nightly check moved to a newer, supported version of its software ahead of a Google deadline.']
       ]
     },
     {
       id: '2026-10-20-phone-mailing',
       date: '2026-10-20',
       title: 'Phone layout and mailing addresses',
-      items: [
+      summary: [
         'The CRM works much better on a phone: clients show right away, filters fold behind a Filters button, and the screen no longer zooms in when you tap a field.',
         'Second homes and rentals have a Mailing Address, so mailers go to the owner instead of the tenant. A one-click suggestion fills in the owner\'s home address when the CRM has it.'
+      ],
+      details: [
+        ['new', 'Mailing Address for second homes and rentals, on the client form and details panel. Mailers send to it instead of the property so tenants do not get the mail.'],
+        ['new', 'Records missing one are flagged Needs mailing address, and spreadsheet imports read Mailing Address, City, State, and Zip columns.'],
+        ['new', 'One-click suggestion: the owner\'s current home address, taken from their owner-occupied loan and skipping homes they no longer own.'],
+        ['improved', 'Phone layout: clients appear on the first screen, totals and rates are compact, filters fold behind a Filters button, the form\'s Save button stays at the bottom, and tapping a field no longer zooms the screen.'],
+        ['improved', 'Referral Partners and Mailers show as cards on phones instead of wide tables.'],
+        ['behind', 'A planning backlog was started, and a status check found the nightly ownership check had stopped in September.']
+      ]
+    },
+    {
+      id: '2026-06-29-docs',
+      date: '2026-06-29',
+      title: 'Documentation and a data cleanup',
+      details: [
+        ['behind', 'A build spec and operations guide were written for the app.'],
+        ['fixed', 'A referral partner\'s name had been typed into a client\'s name field by mistake, and was removed.']
+      ]
+    },
+    {
+      id: '2026-06-19-morning-report',
+      date: '2026-06-19',
+      title: 'Morning ownership report',
+      details: [
+        ['behind', 'A daily morning report of ownership counts and what changed overnight, matching the dashboard\'s numbers.'],
+        ['fixed', 'The report runs reliably on its schedule and says clearly when something goes wrong (Jun 20).']
+      ]
+    },
+    {
+      id: '2026-06-17-mailers',
+      date: '2026-06-17',
+      title: 'Mailers and address auto-fill',
+      details: [
+        ['new', 'Mailers page for quarterly mail merges: filter by ownership status and closing year, skip no-longer-owner records and deceased-only households, optionally one label per address, and export a CSV or Avery 5160 labels.'],
+        ['new', 'Ownership status filter on the dashboard.'],
+        ['new', 'Address auto-fill: a missing city, state, or zip is filled from the county parcel record when the street matches confidently. Unclear matches are flagged for review instead of guessed.'],
+        ['behind', 'If a county website changes and stops returning owners, the nightly check flags it.']
+      ]
+    },
+    {
+      id: '2026-06-15-ownership',
+      date: '2026-06-15',
+      title: 'Nightly ownership check',
+      details: [
+        ['new', 'Every night the CRM looks up each property on the Ada and Canyon county assessor sites and marks its ownership: Verified (owner matches the borrower), Trust, Entity (LLC or company), No Longer Owner, or Unverified.'],
+        ['behind', 'It goes easy on the county sites, rechecks each record about once a month, and a failed lookup never changes a status.'],
+        ['improved', 'Different spellings of the same borrower are treated as one person (Jun 16).']
+      ]
+    },
+    {
+      id: '2026-06-10-loan-history',
+      date: '2026-06-10',
+      title: 'Loan history and contact details',
+      details: [
+        ['new', 'Phone and email for every borrower, with phone numbers formatted the same way.'],
+        ['new', 'A client\'s loans are linked: the dashboard shows one row per client with their current loan, and earlier loans appear under Loan History.'],
+        ['new', 'Ownership status badge and field on each client, set by hand at first.'],
+        ['improved', 'Search accepts several words at once.'],
+        ['improved', 'Referral partner spellings merged so each partner counts once.'],
+        ['improved', 'For security, sign-in now lasts only until the browser is closed.']
+      ]
+    },
+    {
+      id: '2026-06-09-refi-watch',
+      date: '2026-06-09',
+      title: 'Refi Watch',
+      details: [
+        ['new', 'Refi Watch flags loans whose rate is 0.75 points or more above today\'s market rate, and all-in-one (AIO-3YR) loans three or more years past closing.']
+      ]
+    },
+    {
+      id: '2026-06-08-phone-cards',
+      date: '2026-06-08',
+      title: 'Phone view and more loan programs',
+      details: [
+        ['new', 'The client list switches to cards on phones.'],
+        ['new', 'HELOC and 2nd Mortgage program options.'],
+        ['improved', 'Search has a clear button, and the logo takes you back to the dashboard.']
+      ]
+    },
+    {
+      id: '2026-06-06-imports',
+      date: '2026-06-06',
+      title: 'Spreadsheet import and filters',
+      details: [
+        ['new', 'Import clients from Excel or CSV spreadsheets, with common column names recognized, including a loan product column.'],
+        ['new', 'Closing-year filters and pages for the client list.'],
+        ['new', 'Deceased flag for each borrower, and totals for self-sourced loans.'],
+        ['improved', 'Referral partner workflow, with spelling variants of the same partner cleaned up.'],
+        ['behind', 'Past yearly production reports were cleaned up and loaded: 346 records on Jun 6 and about 257 more over the next few days.']
+      ]
+    },
+    {
+      id: '2026-06-05-workflow',
+      date: '2026-06-05',
+      title: 'Easier everyday workflow',
+      details: [
+        ['improved', 'Clients open in a side panel for viewing and editing.'],
+        ['new', 'Referral partner insights: top partners with their loans and volume.'],
+        ['improved', 'Refreshed logo and sign-in screen, and more compact dashboard numbers.']
+      ]
+    },
+    {
+      id: '2026-06-04-rates',
+      date: '2026-06-04',
+      title: 'Official mortgage rates',
+      details: [
+        ['improved', 'Mortgage rates now come from the official Freddie Mac weekly survey and refresh automatically every day.']
+      ]
+    },
+    {
+      id: '2026-05-28-launch',
+      date: '2026-05-28',
+      title: 'IRMAE CRM goes online',
+      details: [
+        ['new', 'The CRM moved from spreadsheets and a program on one computer to a private web app, signed in with Google and limited to two approved accounts.'],
+        ['new', 'Client list with property type, purchase or refinance, borrowers, address, sales price, loan amount, rate, program, closing date, and referral partner.'],
+        ['new', 'Add, edit, and delete clients, with up to four borrowers each.'],
+        ['new', 'Backup download with a reminder, and restore from a backup file.'],
+        ['new', 'National mortgage rates on the dashboard.'],
+        ['behind', 'The first 61 client records were brought over from the earlier local database on May 27.']
       ]
     }
   ];
+  const WHATS_NEW = RELEASE_NOTES.filter(r => r.summary && r.summary.length);
   const RELEASE_SEEN_KEY = 'irmaeLastSeenRelease';
 
   // The browser copy is per signed-in user too, so people sharing a browser
@@ -6144,14 +6401,14 @@
     let local = '';
     try { local = localStorage.getItem(releaseSeenKey()) || ''; } catch {}
     const position = id => {
-      const i = RELEASE_NOTES.findIndex(r => r.id === id);
+      const i = WHATS_NEW.findIndex(r => r.id === id);
       return i === -1 ? Infinity : i;
     };
     return position(remoteSeenReleaseId) <= position(local) ? remoteSeenReleaseId : local;
   }
 
   function renderReleaseDot() {
-    const unseen = RELEASE_NOTES.length > 0 && lastSeenReleaseId() !== RELEASE_NOTES[0].id;
+    const unseen = WHATS_NEW.length > 0 && lastSeenReleaseId() !== WHATS_NEW[0].id;
     ['menuNotifyDot', 'menuItemNotifyDot'].forEach(id => {
       const dot = document.getElementById(id);
       if (dot) dot.hidden = !unseen;
@@ -6161,8 +6418,8 @@
 
   function openReleaseNotes() {
     closeActionMenu();
-    const seenIndex = RELEASE_NOTES.findIndex(r => r.id === lastSeenReleaseId());
-    document.getElementById('releaseNotesList').innerHTML = RELEASE_NOTES.map((r, i) => {
+    const seenIndex = WHATS_NEW.findIndex(r => r.id === lastSeenReleaseId());
+    document.getElementById('releaseNotesList').innerHTML = WHATS_NEW.map((r, i) => {
       const isNew = seenIndex === -1 || i < seenIndex;
       return `
         <div class="release${isNew ? ' is-new' : ''}">
@@ -6170,11 +6427,11 @@
             <div class="release-title">${esc(r.title)}${isNew ? '<span class="release-new">New</span>' : ''}</div>
             <div class="release-date">${esc(fmtDate(r.date))}</div>
           </div>
-          <ul>${r.items.map(item => `<li>${esc(item)}</li>`).join('')}</ul>
+          <ul>${r.summary.map(item => `<li>${esc(item)}</li>`).join('')}</ul>
         </div>`;
     }).join('');
     document.getElementById('releaseNotesOverlay').classList.add('open');
-    const latest = RELEASE_NOTES[0].id;
+    const latest = WHATS_NEW[0].id;
     try { localStorage.setItem(releaseSeenKey(), latest); } catch {}
     remoteSeenReleaseId = latest;
     if (db && currentUser && currentUser.uid) {
@@ -6185,6 +6442,70 @@
 
   function closeReleaseNotes() {
     document.getElementById('releaseNotesOverlay').classList.remove('open');
+  }
+
+  let releaseNotesFilter = 'all';
+
+  function openReleaseNotesPage() {
+    closeReleaseNotes();
+    closeClientDrawer();
+    closePartnerDrawer();
+    closeActionMenu();
+    document.querySelectorAll('.page-view').forEach(view => { view.hidden = view.id !== 'releaseNotesView'; });
+    document.getElementById('referralPartnersView').hidden = true;
+    renderReleaseNotesPage();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function closeReleaseNotesPage() {
+    document.getElementById('releaseNotesView').hidden = true;
+    document.getElementById('dashboardView').hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function setReleaseNotesFilter(key) {
+    releaseNotesFilter = key;
+    renderReleaseNotesPage();
+  }
+
+  function renderReleaseNotesPage() {
+    const counts = { all: 0 };
+    RELEASE_NOTES.forEach(r => (r.details || []).forEach(([type]) => {
+      counts.all++;
+      counts[type] = (counts[type] || 0) + 1;
+    }));
+    const filters = [{ key: 'all', label: 'All changes' }, ...Object.entries(RELEASE_TYPES).map(([key, label]) => ({ key, label }))];
+    document.getElementById('releaseNotesFilterButtons').innerHTML = filters.map(f => `
+      <button class="year-filter-btn${releaseNotesFilter === f.key ? ' active' : ''}"
+        onclick="setReleaseNotesFilter('${f.key}')" aria-pressed="${releaseNotesFilter === f.key}">
+        ${esc(f.label)} <span class="filter-count">${counts[f.key] || 0}</span>
+      </button>`).join('');
+
+    const oldest = RELEASE_NOTES[RELEASE_NOTES.length - 1];
+    document.getElementById('release-summary-releases').textContent = RELEASE_NOTES.length;
+    document.getElementById('release-summary-changes').textContent = counts.all;
+    document.getElementById('release-summary-since').textContent = oldest ? MONTHS_SHORT[Number(oldest.date.slice(5, 7)) - 1] + ' ' + oldest.date.slice(0, 4) : '—';
+
+    let month = '';
+    document.getElementById('releaseNotesTimeline').innerHTML = RELEASE_NOTES.map(r => {
+      const items = (r.details || []).filter(([type]) => releaseNotesFilter === 'all' || type === releaseNotesFilter);
+      if (!items.length) return '';
+      const releaseMonth = r.date.slice(0, 7);
+      const heading = releaseMonth !== month
+        ? `<h3 class="release-month">${esc(MONTHS_FULL[Number(releaseMonth.slice(5, 7)) - 1])} ${esc(releaseMonth.slice(0, 4))}</h3>`
+        : '';
+      month = releaseMonth;
+      return `${heading}
+        <div class="release">
+          <div class="release-head">
+            <div class="release-title">${esc(r.title)}</div>
+            <div class="release-date">${esc(fmtDate(r.date))}</div>
+          </div>
+          <ul class="release-details">${items.map(([type, text]) => `
+            <li><span class="release-tag release-tag-${esc(type)}">${esc(RELEASE_TYPES[type] || type)}</span><span>${esc(text)}</span></li>`).join('')}
+          </ul>
+        </div>`;
+    }).join('');
   }
 
   function importClientsFromMenu() {

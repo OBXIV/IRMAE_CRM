@@ -192,12 +192,30 @@ Backstops independent of Cloud Monitoring:
 4. Validate with `npm run try -- "<address>"`.
 5. Add a test in `functions/test/`, run `npm test`, then deploy.
 
-### Add a What's new entry (every user-facing release)
-The app shows a red dot on the ☰ menu until the user opens **What's new**. The notes live in `RELEASE_NOTES` in `index.html`. For any change a user would notice, add an entry at the top of that array in the same commit as the change:
+### Add release notes (every release)
+Release notes live in `RELEASE_NOTES` in `index.html`, newest first, and feed two views:
+- **What's new** (popup from the ☰ menu): the short `summary` bullets. Only entries with a `summary` appear there, and a new top entry with a summary turns on the red menu dot.
+- **Release notes page** (See full release notes, at the bottom of What's new): every entry's `details`, grouped by month, filterable by type.
+
+Add an entry at the top in the same commit as the change:
 ```
-{ id: '2026-11-02-short-slug', date: '2026-11-02', title: 'Short name', items: ['One plain-English sentence per change.'] }
+{
+  id: '2026-11-02-short-slug',
+  date: '2026-11-02',
+  title: 'Short name',
+  summary: ['One plain-English sentence per change she will notice.'],
+  details: [
+    ['new', 'What was added, in a bit more detail.'],
+    ['improved', 'What works better.'],
+    ['fixed', 'What was broken and is now fixed.'],
+    ['behind', 'Behind-the-scenes work worth knowing about.']
+  ]
+}
 ```
-The `id` must be new; a new top id is what turns the dot on. Write for the person using the CRM, not for developers (no field names or code terms). Behind-the-scenes work only needs an entry when it changes something she can see or rely on. Seen state is saved to the signed-in user's `/userPrefs/{uid}` and mirrored in the browser, so opening What's new on one device clears the dot on all of them (live, without a reload).
+- The `id` must be new.
+- Leave out `summary` for releases she would not notice (they still appear on the Release notes page and do not light the dot).
+- Write for the person using the CRM, not for developers: no field names or code terms, and no client names or data (the repo is public).
+- Seen state is saved to the signed-in user's `/userPrefs/{uid}` and mirrored per user in the browser, so opening What's new on one device clears the dot on all of them, live.
 
 ### Work the address review queue
 Open **Address Review** from the menu, or click **Needs Address Review** on the Mailers page. Records are grouped by problem (missing city and zip, needs mailing address, missing street) and shown one at a time: type the fix and press **Save & next** (or Enter), take a one-click suggestion when one exists, **Skip**, or **Can't fix** with an optional reason (listed under Can't fix, where **Put back** returns it to the queue). A record leaves the queue as soon as its address is complete. The county probe's old `needs_review` flag no longer counts once an address is complete; saving clears it, and the page offers a one-time **Clear old flags** button for leftovers.
