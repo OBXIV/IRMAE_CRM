@@ -85,7 +85,7 @@ Push to the default branch. GitHub Pages publishes `index.html` and `rates.json`
 cd functions
 firebase deploy --only functions
 ```
-Functions are in `us-central1`, Node 22, 512MiB, 540s timeout.
+Functions are in `us-central1`, Node 22, 512MiB, 1800s timeout (the maximum for scheduled functions; deploy also sets the Cloud Scheduler attempt deadline to 1800s).
 
 ### Database rules
 `firebase-rules.json` is documentation. To make rules live:

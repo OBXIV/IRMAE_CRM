@@ -15,7 +15,7 @@ initializeApp({
 const COMMON = {
   region: 'us-central1',
   memory: '512MiB',
-  timeoutSeconds: 540, // 9 min — the loop is throttled and may run long
+  timeoutSeconds: 1800, // 30 min, the v2 scheduled-function maximum; the run loop stops at RUN_TIME_BUDGET_MS
 };
 
 // Breakage alerting: when a county portal changes its site and a provider stops

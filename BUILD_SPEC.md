@@ -147,7 +147,7 @@ Guardrails (`config.js`):
 - `MAX_LOOKUPS_PER_RUN` 400 — runaway cost / block backstop.
 - `RECHECK_AFTER_DAYS` 30 — re-check cadence.
 - `RETRY_UNRESOLVED_AFTER_DAYS` 14: wait before retrying a no-owner or no-match result. Site errors (`lookup_failed`) still retry nightly.
-- `RUN_TIME_BUDGET_MS` 420000: stop starting lookups after 7 minutes so every run ends cleanly inside the 540s timeout.
+- `RUN_TIME_BUDGET_MS` 1500000: stop starting lookups after 25 minutes so every run ends cleanly inside the 1800s timeout.
 - Browser-like `USER_AGENT` to avoid trivial bot 403s.
 
 Run summary fields: `looked_up`, `updated`, `failed`, `skipped_no_address`, `skipped_recent`, `skipped_retry_later`, `stopped_for_time`, `skipped_no_county`, `unsupported_county`, `street_only_probed`, `address_enriched`, `address_needs_review`, `by_status` (per ownership status).

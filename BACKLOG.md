@@ -11,7 +11,7 @@ Priority: P0 broken in production · P1 needed soon · P2 cleanup / hardening
 ## Open
 
 ### P1
-- [ ] **Speed up the ownership catch-up.** 270 records still due after the outage. The no-owner retry backoff (shipped Oct 23) works, but county lookups ran slow on Oct 24: about 16 seconds each, so only 26 fit in the 7 minute budget. Raise the function timeout to 1800s and `RUN_TIME_BUDGET_MS` to about 25 minutes (still inside the free tier), deploy, and confirm the due count drops each night.
+- [ ] **Confirm the catch-up finishes.** Run budget raised to 25 minutes on 2026-10-24. Check the due count (270 that day) drops each night and reaches zero; close this once it does.
 - [ ] **Build a first-class Address Review worklist.** 241 current borrowers are flagged `needs_review` as of 2026-10-23. Add category counts, previous/next navigation, one-click suggestions, resolution tracking, and a clear completed state so the queue can be worked down in one pass.
 - [ ] **Fill mailing addresses on non-primary records.** 48 second home / investment records show "Needs mailing address". 9 have a one-click suggestion (Mailers > address review, or the drawer); the other 39 need the address entered by hand.
 - [ ] **Build a Today's Work page.** Combine active Refi Watch records, birthdays, loan anniversaries, address reviews, ownership follow-ups, and manually scheduled actions into one prioritized work queue.

@@ -21,10 +21,10 @@ const RETRY_UNRESOLVED_AFTER_DAYS = 14;
 const MAX_LOOKUPS_PER_RUN = 400;
 
 // Stop starting new lookups after this long so a large catch-up run still ends
-// cleanly (summary + systemHealth heartbeat) inside the 540s function timeout.
-// The 2 min margin covers one slow lookup plus the final writes. Records not
-// reached are picked up the next night.
-const RUN_TIME_BUDGET_MS = 420000;
+// cleanly (summary + systemHealth heartbeat) inside the 1800s function timeout.
+// The 5 min margin covers one slow lookup (or a two-county street probe) plus
+// the final writes. Records not reached are picked up the next night.
+const RUN_TIME_BUDGET_MS = 1500000;
 
 // Breakage alert: if a county portal returns an owner on ZERO of at least this
 // many routed lookups in a run, treat the provider as broken and alert. Set
