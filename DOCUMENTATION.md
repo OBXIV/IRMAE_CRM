@@ -88,11 +88,11 @@ firebase deploy --only functions
 Functions are in `us-central1`, Node 22, 512MiB, 1800s timeout (the maximum for scheduled functions; deploy also sets the Cloud Scheduler attempt deadline to 1800s).
 
 ### Database rules
-`firebase-rules.json` is documentation. To make rules live:
-1. Firebase Console -> Realtime Database -> Rules.
-2. Paste the contents of `firebase-rules.json`.
-3. Publish.
-Then commit any change for the record.
+`firebase-rules.json` is the deployable copy of the live rules. Check the Rules tab first that the live rules still match the file (a deploy replaces them), then:
+```
+firebase deploy --only database --project iramecrm
+```
+`--dry-run` checks the syntax without publishing. Pasting the file into Firebase Console -> Realtime Database -> Rules -> Publish also works. Commit the file with any change.
 
 ---
 
@@ -197,7 +197,7 @@ The app shows a red dot on the ☰ menu until the user opens **What's new**. The
 ```
 { id: '2026-11-02-short-slug', date: '2026-11-02', title: 'Short name', items: ['One plain-English sentence per change.'] }
 ```
-The `id` must be new; a new top id is what turns the dot on. Write for the person using the CRM, not for developers (no field names or code terms). Behind-the-scenes work only needs an entry when it changes something she can see or rely on. Seen state is stored per browser, so each device shows the dot once per release.
+The `id` must be new; a new top id is what turns the dot on. Write for the person using the CRM, not for developers (no field names or code terms). Behind-the-scenes work only needs an entry when it changes something she can see or rely on. Seen state is saved to the signed-in user's `/userPrefs/{uid}` and mirrored in the browser, so opening What's new on one device clears the dot on all of them (live, without a reload).
 
 ### Work the address review queue
 Open **Address Review** from the menu, or click **Needs Address Review** on the Mailers page. Records are grouped by problem (missing city and zip, needs mailing address, missing street) and shown one at a time: type the fix and press **Save & next** (or Enter), take a one-click suggestion when one exists, **Skip**, or **Can't fix** with an optional reason (listed under Can't fix, where **Put back** returns it to the queue). A record leaves the queue as soon as its address is complete. The county probe's old `needs_review` flag no longer counts once an address is complete; saving clears it, and the page offers a one-time **Clear old flags** button for leftovers.

@@ -45,7 +45,7 @@ GitHub Pages (static)
         v
 Firebase project: iramecrm
   Authentication        Google provider only, 2 authorized emails
-  Realtime Database     /clients/{clientId}, /systemHealth/ownership
+  Realtime Database     /clients/{clientId}, /systemHealth/ownership, /userPrefs/{uid}
   RTDB Backups          daily data + rules, gzipped JSON, bucket iramecrm-default-rtdb-backups
   Cloud Functions (Node 22, us-central1)
      nightlyOwnershipCheck   scheduled 03:15 America/Boise
@@ -119,6 +119,9 @@ Indexed on: `closing`, `borrower1last`, `referral`, `program` (see `firebase-rul
 System health
 - `/systemHealth/ownership` — last run summary and breakage state.
 
+User preferences
+- `/userPrefs/{uid}`: per signed-in user. `lastSeenRelease` (id of the newest What's new entry they have opened) and `lastSeenReleaseAt`, so the What's new dot clears on every device.
+
 ### Ownership status meanings
 - `verified` — assessor owner name confidently matches the borrower.
 - `unverified` — default before a confident result, or no match yet.
@@ -179,8 +182,8 @@ If a county returns an owner on zero of at least `ALERT_MIN_SAMPLE` (5) routed l
 ## 8. Security and Access
 
 - Auth: Google sign-in only. Two emails are authorized in `firebase-rules.json`: `mechev14@gmail.com`, `iecheve@gmail.com`.
-- RTDB rules are the source of truth for read/write. The committed `firebase-rules.json` is documentation; the live rules must be published in the Firebase Console to take effect.
-- Adding a user: add their Google email to `firebase-rules.json`, publish in the Console, then commit the file.
+- RTDB rules are the source of truth for read/write. `firebase-rules.json` is the deployable copy; publish it with `firebase deploy --only database` (or paste it in the Firebase Console). Each approved user can read and write only their own `/userPrefs/{uid}`, limited to the What's new fields.
+- Adding a user: add their Google email to every rule in `firebase-rules.json` (clients and userPrefs), publish, then commit the file.
 - Authorized domains must include `localhost`, `127.0.0.1`, `obxiv.github.io`, and Firebase defaults (`iramecrm.firebaseapp.com`, `iramecrm.web.app`).
 - Secrets (never committed): `OWNERSHIP_RUN_TOKEN`, `OWNERSHIP_ALERT_WEBHOOK_URL` (Firebase secrets), `FRED_API_KEY` (GitHub secret).
 - The manual function trigger requires `?token=` matching `OWNERSHIP_RUN_TOKEN`, else 403.
@@ -193,7 +196,7 @@ If a county returns an owner on zero of at least `ALERT_MIN_SAMPLE` (5) routed l
 |---|---|---|
 | Front end | `index.html`, `rates.json`, `assets/` | Push to default branch -> GitHub Pages |
 | Functions | `functions/` | `firebase deploy --only functions` |
-| DB rules | `firebase-rules.json` | Publish in Firebase Console (manual) |
+| DB rules | `firebase-rules.json` | `firebase deploy --only database` (or paste in the Firebase Console) |
 | DB backups | Firebase-managed | Daily automatic backups, configured in Firebase console > Realtime Database > Backups |
 | Rates | `scripts/update_rates.py` | GitHub Action (daily) |
 

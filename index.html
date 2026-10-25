@@ -2460,7 +2460,9 @@
         document.getElementById('currentUserEmail').textContent = user.email ? `Signed in: ${user.email}` : '';
         document.getElementById('loginOverlay').classList.remove('open');
         startListening();
+        watchReleaseSeen(user);
       } else {
+        watchReleaseSeen(null);
         if (db && listening) {
           db.ref(CLIENTS_PATH).off();
           listening = false;
@@ -6048,6 +6050,14 @@
   // the top with every user-facing release; a new top id lights the menu dot.
   const RELEASE_NOTES = [
     {
+      id: '2026-10-24-whats-new-sync',
+      date: '2026-10-24',
+      title: 'What\'s new on every device',
+      items: [
+        'Once you read What\'s new on your phone or computer, the red dot clears everywhere you are signed in.'
+      ]
+    },
+    {
       id: '2026-10-24-whats-new',
       date: '2026-10-24',
       title: "What's new",
@@ -6105,9 +6115,33 @@
     }
   ];
   const RELEASE_SEEN_KEY = 'irmaeLastSeenRelease';
+  let remoteSeenReleaseId = '';
+  let releaseSeenRef = null;
 
+  // Synced per signed-in user under /userPrefs/{uid} so every device agrees.
+  // If that read is refused (rules not yet published) the browser copy still works.
+  function watchReleaseSeen(user) {
+    if (releaseSeenRef) { releaseSeenRef.off(); releaseSeenRef = null; }
+    remoteSeenReleaseId = '';
+    if (db && user && user.uid) {
+      releaseSeenRef = db.ref(`userPrefs/${user.uid}/lastSeenRelease`);
+      releaseSeenRef.on('value', snap => {
+        remoteSeenReleaseId = snap.val() || '';
+        renderReleaseDot();
+      }, () => {});
+    }
+    renderReleaseDot();
+  }
+
+  // The more recent of this browser's copy and the synced one.
   function lastSeenReleaseId() {
-    try { return localStorage.getItem(RELEASE_SEEN_KEY) || ''; } catch { return ''; }
+    let local = '';
+    try { local = localStorage.getItem(RELEASE_SEEN_KEY) || ''; } catch {}
+    const position = id => {
+      const i = RELEASE_NOTES.findIndex(r => r.id === id);
+      return i === -1 ? Infinity : i;
+    };
+    return position(remoteSeenReleaseId) <= position(local) ? remoteSeenReleaseId : local;
   }
 
   function renderReleaseDot() {
@@ -6134,7 +6168,12 @@
         </div>`;
     }).join('');
     document.getElementById('releaseNotesOverlay').classList.add('open');
-    try { localStorage.setItem(RELEASE_SEEN_KEY, RELEASE_NOTES[0].id); } catch {}
+    const latest = RELEASE_NOTES[0].id;
+    try { localStorage.setItem(RELEASE_SEEN_KEY, latest); } catch {}
+    remoteSeenReleaseId = latest;
+    if (db && currentUser && currentUser.uid) {
+      db.ref(`userPrefs/${currentUser.uid}`).update({ lastSeenRelease: latest, lastSeenReleaseAt: Date.now() }).catch(() => {});
+    }
     renderReleaseDot();
   }
 

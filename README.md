@@ -26,7 +26,7 @@ Only these Google accounts are allowed by the database rules:
 - `mechev14@gmail.com`
 - `iecheve@gmail.com`
 
-If another user needs access, add their Google email to `firebase-rules.json`, publish the updated rules in Firebase, then commit/push the rules file for documentation.
+If another user needs access, add their Google email to every rule in `firebase-rules.json` (both `clients` and `userPrefs`), publish the updated rules (`firebase deploy --only database`, or paste them in the Firebase Console), then commit/push the rules file.
 
 ## Firebase Settings
 
